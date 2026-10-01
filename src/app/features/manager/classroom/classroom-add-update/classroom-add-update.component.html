@@ -1,0 +1,108 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div
+      class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:school"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">
+        {{ data.isEdit ? 'Modifier la classe' : 'Nouvelle classe' }}
+      </h2>
+      <p class="m-0 caption text-hint">
+        {{ data.isEdit ? 'Modifiez les informations de cette classe' : 'Créez une nouvelle classe pour l\'année en cours' }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <mat-dialog-content class="px-6 py-4">
+
+    <!-- Chargement des referentiels -->
+    <div *ngIf="loadingRefs" class="flex flex-col items-center justify-center gap-4 py-8">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p class="m-0 caption text-hint">Chargement des niveaux...</p>
+    </div>
+
+    <form *ngIf="!loadingRefs" [formGroup]="form" class="flex flex-col gap-4">
+
+      <!-- Annee scolaire : non saisissable, rappel du contexte -->
+      <div class="flex items-center gap-3 px-4 py-3 rounded bg-primary-600/5 border border-primary-600/20">
+        <mat-icon svgIcon="mat:date_range" class="icon-sm text-primary-600 flex-none"></mat-icon>
+        <div class="flex-auto">
+          <p class="m-0 caption text-hint">Année scolaire</p>
+          <p class="m-0 body-2 font-medium">{{ anneeLabel }}</p>
+        </div>
+      </div>
+
+      <!-- Nom et Code -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Nom de la classe</mat-label>
+          <mat-icon matPrefix svgIcon="mat:school" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="nom" placeholder="Ex: 6ème A" />
+          <mat-error *ngIf="form.get('nom')?.hasError('required')">
+            Le nom est obligatoire
+          </mat-error>
+          <mat-error *ngIf="form.get('nom')?.hasError('maxlength')">
+            Le nom ne peut pas dépasser 100 caractères
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Code (optionnel)</mat-label>
+          <mat-icon matPrefix svgIcon="mat:grade" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="code" placeholder="Ex: 6A" />
+          <mat-error *ngIf="form.get('code')?.hasError('maxlength')">
+            Le code ne peut pas dépasser 20 caractères
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Niveau et Effectif -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Niveau</mat-label>
+          <mat-icon matPrefix svgIcon="mat:layers" class="mr-2 text-hint icon-sm"></mat-icon>
+          <mat-select formControlName="niveau_id">
+            <mat-option *ngFor="let niveau of niveaux" [value]="niveau.id">
+              {{ niveau.nom }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="form.get('niveau_id')?.hasError('required')">
+            Le niveau est obligatoire
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Effectif maximum (optionnel)</mat-label>
+          <mat-icon matPrefix svgIcon="mat:person" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput type="number" formControlName="effectif_max" placeholder="Ex: 40" min="1" />
+          <mat-error *ngIf="form.get('effectif_max')?.hasError('min')">
+            L'effectif doit être d'au moins 1
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <!-- Actions -->
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">
+      Annuler
+    </button>
+
+    <button mat-raised-button color="primary" type="button" (click)="onSubmit()"
+      [disabled]="!canSubmit">
+      <ng-container *ngIf="!loading">
+        <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        {{ data.isEdit ? 'Modifier' : 'Créer' }}
+      </ng-container>
+      <ng-container *ngIf="loading">
+        <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        {{ data.isEdit ? 'Modification...' : 'Création...' }}
+      </ng-container>
+    </button>
+  </mat-dialog-actions>
+</div>

@@ -1,0 +1,128 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div
+      class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:shopping_bag"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">
+        {{ data.isEdit ? 'Modifier la dépense' : 'Nouvelle dépense' }}
+      </h2>
+      <p class="m-0 caption text-hint">
+        {{ data.isEdit ? 'Modifiez les informations de cette dépense' : 'Enregistrez une dépense de l\'établissement' }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <mat-dialog-content class="px-6 py-4">
+    <form [formGroup]="form" class="flex flex-col gap-4">
+
+      <!-- Libellé -->
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Libellé</mat-label>
+        <mat-icon matPrefix svgIcon="mat:title" class="mr-2 text-hint icon-sm"></mat-icon>
+        <input matInput formControlName="libelle" placeholder="Ex: Salaires du mois de juin" />
+        <mat-error *ngIf="form.get('libelle')?.hasError('required')">
+          Le libellé est obligatoire
+        </mat-error>
+        <mat-error *ngIf="form.get('libelle')?.hasError('maxlength')">
+          Le libellé est trop long (255 caractères max)
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Catégorie + Mode de paiement -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Catégorie</mat-label>
+          <mat-icon matPrefix svgIcon="mat:category" class="mr-2 text-hint icon-sm"></mat-icon>
+          <mat-select formControlName="categorie">
+            <mat-option *ngFor="let c of data.categories" [value]="c.valeur">{{ c.libelle }}</mat-option>
+          </mat-select>
+          <mat-error *ngIf="form.get('categorie')?.hasError('required')">
+            La catégorie est obligatoire
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Mode de paiement</mat-label>
+          <mat-icon matPrefix svgIcon="mat:receipt" class="mr-2 text-hint icon-sm"></mat-icon>
+          <mat-select formControlName="mode_paiement">
+            <mat-option *ngFor="let m of data.modesPaiement" [value]="m.valeur">{{ m.libelle }}</mat-option>
+          </mat-select>
+          <mat-error *ngIf="form.get('mode_paiement')?.hasError('required')">
+            Le mode de paiement est obligatoire
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Montant + Date -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Montant (FCFA)</mat-label>
+          <mat-icon matPrefix svgIcon="mat:insert_chart" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput type="number" formControlName="montant" placeholder="0" min="1" />
+          <mat-error *ngIf="form.get('montant')?.hasError('required')">
+            Le montant est obligatoire
+          </mat-error>
+          <mat-error *ngIf="form.get('montant')?.hasError('min')">
+            Le montant doit être supérieur à zéro
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Date de la dépense</mat-label>
+          <input matInput [matDatepicker]="picker" [max]="aujourdhui" formControlName="date_depense" />
+          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+          <mat-error *ngIf="form.get('date_depense')?.hasError('required')">
+            La date est obligatoire
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Bénéficiaire + Référence -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Bénéficiaire (facultatif)</mat-label>
+          <mat-icon matPrefix svgIcon="mat:person" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="beneficiaire" placeholder="Ex: Fournisseur, employé…" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Référence (facultatif)</mat-label>
+          <mat-icon matPrefix svgIcon="mat:description" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="reference" placeholder="N° facture, reçu…" />
+        </mat-form-field>
+      </div>
+
+      <!-- Description -->
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Description (facultatif)</mat-label>
+        <textarea matInput formControlName="description" rows="2"
+          placeholder="Précisions sur cette dépense…"></textarea>
+      </mat-form-field>
+
+    </form>
+  </mat-dialog-content>
+
+  <!-- Actions -->
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">
+      Annuler
+    </button>
+
+    <button mat-raised-button color="primary" type="button" (click)="onSubmit()"
+      [disabled]="loading || form.invalid">
+      <ng-container *ngIf="!loading">
+        <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        {{ data.isEdit ? 'Modifier' : 'Enregistrer' }}
+      </ng-container>
+      <ng-container *ngIf="loading">
+        <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        {{ data.isEdit ? 'Modification...' : 'Enregistrement...' }}
+      </ng-container>
+    </button>
+  </mat-dialog-actions>
+</div>

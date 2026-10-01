@@ -1,0 +1,105 @@
+<vex-liste-page
+  icon="mat:school"
+  titre="Classes"
+  titreCarte="Liste des classes"
+  sousTitre="Année scolaire en cours"
+  [loading]="loading"
+  [vide]="classes().length === 0"
+  [aDesFiltres]="true"
+  [meta]="meta()"
+  [pageSizeOptions]="meta().pageSizeOptions ?? [5, 10, 25, 50]"
+  (pageChange)="onPageChange($event)">
+
+  <!-- Action en-tête -->
+  <button entete *ngIf="!isSupervisor" color="primary" mat-raised-button type="button"
+    (click)="openAddDialog()" class="hidden sm:inline-flex">
+    <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    Nouvelle classe
+  </button>
+
+  <!-- Filtres -->
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-72" subscriptSizing="dynamic">
+    <mat-label>Rechercher</mat-label>
+    <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput [formControl]="searchCtrl" placeholder="Nom, code ou niveau" />
+  </mat-form-field>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let classe of classes()">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+      <mat-icon svgIcon="mat:school" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">{{ classe.nom }}</p>
+      <p class="m-0 caption text-hint">
+        <ng-container *ngIf="classe.code">
+          Code : <span class="font-medium text-primary-600">{{ classe.code }}</span> &bull;
+        </ng-container>
+        <span>{{ classe.niveau?.nom ?? '—' }}</span>
+      </p>
+    </div>
+
+    <!-- Effectif en badge à droite -->
+    <span badge class="px-2 py-1 rounded-full text-xs font-medium" [ngClass]="effectifBadgeClass(classe)">
+      Effectif : {{ effectifLabel(classe) }}
+    </span>
+
+    <button actions mat-icon-button type="button"
+      [matMenuTriggerFor]="actionsMenu" [matMenuTriggerData]="{ classe: classe }"
+      (click)="$event.stopPropagation()">
+      <mat-icon svgIcon="mat:more_vert"></mat-icon>
+    </button>
+  </vex-liste-ligne>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:school" class="icon-lg"></mat-icon>
+    </div>
+
+    <ng-container *ngIf="searchCtrl.value; else aucuneClasse">
+      <h3 class="title m-0">Aucun résultat</h3>
+      <p class="m-0 caption text-hint text-center">
+        Aucune classe ne correspond à « {{ searchCtrl.value }} ».
+      </p>
+    </ng-container>
+
+    <ng-template #aucuneClasse>
+      <h3 class="title m-0">Aucune classe</h3>
+      <p class="m-0 caption text-hint text-center">
+        <ng-container *ngIf="!isSupervisor; else aucuneClasseLecture">
+          Commencez par créer la première classe de l'année scolaire en cours.
+        </ng-container>
+        <ng-template #aucuneClasseLecture>
+          Aucune classe n'a encore été créée pour l'année scolaire en cours.
+        </ng-template>
+      </p>
+      <button *ngIf="!isSupervisor" color="primary" mat-raised-button type="button" (click)="openAddDialog()">
+        <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Créer une classe
+      </button>
+    </ng-template>
+  </div>
+</vex-liste-page>
+
+<!-- Menu contextuel -->
+<mat-menu #actionsMenu="matMenu" xPosition="before" yPosition="below">
+  <ng-template let-classe="classe" matMenuContent>
+    <button mat-menu-item (click)="openProgramme(classe)">
+      <mat-icon svgIcon="mat:assignment" class="mr-2"></mat-icon>
+      <span>Programme</span>
+    </button>
+    <button mat-menu-item (click)="openEmploiDuTemps(classe)">
+      <mat-icon svgIcon="mat:date_range" class="mr-2"></mat-icon>
+      <span>Emploi du temps</span>
+    </button>
+    <button *ngIf="!isSupervisor" mat-menu-item (click)="editClasse(classe)">
+      <mat-icon svgIcon="mat:edit" class="mr-2"></mat-icon>
+      <span>Modifier</span>
+    </button>
+    <button *ngIf="!isSupervisor" mat-menu-item (click)="deleteClasse(classe)" class="text-red-600">
+      <mat-icon svgIcon="mat:delete" class="mr-2"></mat-icon>
+      <span>Supprimer</span>
+    </button>
+  </ng-template>
+</mat-menu>

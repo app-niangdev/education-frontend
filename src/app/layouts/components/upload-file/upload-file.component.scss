@@ -1,0 +1,14 @@
+// upload-file.component.scss
+:host {
+  display: block;
+}
+
+// Animation personnalisée pour le drag & drop
+@keyframes pulse-drag {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.drag-pulse {
+  animation: pulse-drag 2s infinite;
+}

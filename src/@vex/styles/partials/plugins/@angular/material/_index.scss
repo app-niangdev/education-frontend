@@ -1,0 +1,14 @@
+@import "autocomplete";
+@import "button";
+@import "card";
+@import "density";
+@import "dialog";
+@import "drawer";
+@import "expansion-panel";
+@import "input";
+@import "menu";
+@import "select";
+
+// Doit rester en dernier : rebranche la palette Material sur les variables CSS
+// de la couleur primaire dynamique, en surchargeant le CSS compilé par Sass.
+@import "dynamic-primary";

@@ -1,0 +1,105 @@
+<div [formGroup]="form" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+  <div class="sm:col-span-2">
+    <p class="caption font-semibold text-hint uppercase tracking-wide m-0">Contrat de travail</p>
+    <mat-divider class="mt-2"></mat-divider>
+    <p class="caption text-hint m-0 mt-2">
+      Un contrat est généré automatiquement à la création. Il pourra ensuite être
+      renouvelé ou résilié depuis le module Contrats.
+    </p>
+  </div>
+
+  <!-- Type de contrat : détermine si une date de fin est exigée. -->
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>Type de contrat</mat-label>
+    <mat-icon matPrefix svgIcon="mat:description" class="mr-2 text-hint icon-sm"></mat-icon>
+    <mat-select formControlName="type_contrat">
+      <mat-option *ngFor="let type of typesContrat" [value]="type.value">{{ type.label }}</mat-option>
+    </mat-select>
+    <mat-hint *ngIf="!exigeDateFin">Engagement sans terme</mat-hint>
+    <mat-hint *ngIf="exigeDateFin">Contrat à durée déterminée</mat-hint>
+  </mat-form-field>
+
+  <!-- Fonction occupée, telle qu'elle figure au contrat. -->
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>Fonction</mat-label>
+    <mat-icon matPrefix svgIcon="mat:work" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput formControlName="fonction" [placeholder]="fonctionParDefaut" />
+  </mat-form-field>
+
+  <!-- Dates -->
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>Date de début</mat-label>
+    <mat-icon matPrefix svgIcon="mat:calendar_today" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput type="date" formControlName="date_debut" />
+    <mat-error *ngIf="f('date_debut').hasError('required')">La date de début est obligatoire</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>Date de fin</mat-label>
+    <mat-icon matPrefix svgIcon="mat:event_busy" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput type="date" formControlName="date_fin" />
+    <mat-hint *ngIf="!exigeDateFin">Laisser vide : contrat sans terme</mat-hint>
+    <mat-error *ngIf="f('date_fin').hasError('required')">
+      Un contrat à durée déterminée doit avoir une date de fin
+    </mat-error>
+  </mat-form-field>
+
+  <!-- La règle porte sur le groupe entier : son message ne peut pas vivre dans
+       un mat-error, qui n'écoute que son propre champ. -->
+  <div *ngIf="form.hasError('finAvantDebut') && f('date_fin').touched"
+       class="sm:col-span-2 -mt-2 flex items-center gap-2 text-red-600 caption">
+    <mat-icon svgIcon="mat:error_outline" class="icon-sm"></mat-icon>
+    La date de fin doit être postérieure à la date de début.
+  </div>
+
+  <!-- Rémunération : le mode dit comment lire le montant. -->
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>Mode de rémunération</mat-label>
+    <mat-icon matPrefix svgIcon="mat:schedule" class="mr-2 text-hint icon-sm"></mat-icon>
+    <mat-select formControlName="mode_remuneration">
+      <mat-option *ngFor="let mode of modesRemuneration" [value]="mode.value">{{ mode.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>{{ labelMontant }}</mat-label>
+    <mat-icon matPrefix svgIcon="mat:receipt" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput type="number" formControlName="salaire_base" placeholder="0" min="0" />
+    <mat-hint>{{ estHoraire ? 'Montant payé par heure effectuée' : 'Montant payé chaque mois' }}</mat-hint>
+    <mat-error *ngIf="f('salaire_base').hasError('min')">Le montant doit être positif</mat-error>
+  </mat-form-field>
+
+  <!-- Période d'essai : fenêtre pendant laquelle chaque partie peut rompre. -->
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>Période d'essai (mois)</mat-label>
+    <mat-icon matPrefix svgIcon="mat:hourglass_empty" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput type="number" formControlName="duree_periode_essai" placeholder="Ex: 3" min="0" max="24" />
+    <mat-hint>Facultatif</mat-hint>
+    <mat-error *ngIf="f('duree_periode_essai').hasError('max')">24 mois au maximum</mat-error>
+    <mat-error *ngIf="f('duree_periode_essai').hasError('min')">La durée doit être positive</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>Volume horaire hebdomadaire</mat-label>
+    <mat-icon matPrefix svgIcon="mat:timelapse" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput type="number" formControlName="volume_horaire_hebdo" placeholder="Ex: 18" min="0" max="168" />
+    <mat-hint>En heures — facultatif</mat-hint>
+    <mat-error *ngIf="f('volume_horaire_hebdo').hasError('max')">168 heures au maximum</mat-error>
+    <mat-error *ngIf="f('volume_horaire_hebdo').hasError('min')">Le volume doit être positif</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w-full sm:col-span-2">
+    <mat-label>Lieu de travail</mat-label>
+    <mat-icon matPrefix svgIcon="mat:location_on" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput formControlName="lieu_travail" placeholder="Ex: Établissement G2000 Bargny" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w-full sm:col-span-2">
+    <mat-label>Observations</mat-label>
+    <mat-icon matPrefix svgIcon="mat:notes" class="mr-2 text-hint icon-sm"></mat-icon>
+    <textarea matInput formControlName="observations" rows="2"
+      placeholder="Clauses particulières, remarques…"></textarea>
+  </mat-form-field>
+
+</div>

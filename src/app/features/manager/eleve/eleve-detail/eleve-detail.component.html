@@ -1,0 +1,310 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- Header -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0 gap-4">
+      <button mat-icon-button type="button" (click)="retour()" matTooltip="Retour à la liste" class="flex-none">
+        <mat-icon svgIcon="mat:arrow_back"></mat-icon>
+      </button>
+
+      <h2 class="display-1 font-bold m-0 flex items-center flex-auto">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:person"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">{{ eleve?.nom_complet ?? 'Fiche élève' }}</span>
+      </h2>
+
+      <div class="flex items-center gap-3 flex-none" *ngIf="eleve">
+        <button *ngIf="peutInscrire" mat-raised-button color="primary" type="button" (click)="inscrire()"
+          class="hidden sm:inline-flex">
+          <mat-icon svgIcon="mat:assignment" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+          Inscrire
+        </button>
+
+        <button mat-stroked-button type="button" (click)="modifierFiche()" class="hidden sm:inline-flex">
+          <mat-icon svgIcon="mat:edit" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+          Modifier
+        </button>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 flex-wrap mt-2 container px-0" *ngIf="eleve">
+      <span class="caption text-hint">{{ eleve.matricule }}</span>
+      <span class="caption text-hint">&bull;</span>
+      <span class="caption text-hint">{{ sexeLabel }}</span>
+      <span class="caption text-hint" *ngIf="eleve.age != null">&bull; {{ eleve.age }} ans</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="statutClass">
+        {{ statutLabel }}
+      </span>
+    </div>
+  </div>
+
+  <div class="container-fluid px-6">
+    <div class="mt-6 flex flex-col gap-6">
+
+      <div *ngIf="loading" class="card flex flex-col items-center justify-center gap-4 p-12">
+        <mat-spinner diameter="48"></mat-spinner>
+        <p class="m-0 text-hint">Chargement de la fiche...</p>
+      </div>
+
+      <ng-container *ngIf="!loading && eleve">
+
+        <!-- Identite -->
+        <div class="card p-4">
+          <div class="flex items-center gap-2 mb-4">
+            <mat-icon svgIcon="mat:person" class="icon-sm text-primary-600"></mat-icon>
+            <h3 class="body-1 font-semibold m-0 flex-auto">Identité</h3>
+            <button mat-icon-button type="button" (click)="editer('identite')" matTooltip="Modifier l'identité">
+              <mat-icon svgIcon="mat:edit" class="icon-sm"></mat-icon>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <p class="m-0 caption text-hint">Date de naissance</p>
+              <p class="m-0 body-2">{{ eleve.date_naissance | date : 'dd/MM/yyyy' }}</p>
+            </div>
+            <div>
+              <p class="m-0 caption text-hint">Lieu de naissance</p>
+              <p class="m-0 body-2">{{ valeur(eleve.lieu_naissance) }}</p>
+            </div>
+            <div>
+              <p class="m-0 caption text-hint">Nationalité</p>
+              <p class="m-0 body-2">{{ valeur(eleve.nationalite) }}</p>
+            </div>
+            <div>
+              <p class="m-0 caption text-hint">Téléphone</p>
+              <p class="m-0 body-2">{{ valeur(eleve.telephone) }}</p>
+            </div>
+            <div class="sm:col-span-2">
+              <p class="m-0 caption text-hint">Adresse</p>
+              <p class="m-0 body-2">{{ valeur(eleve.adresse) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Antecedents medicaux -->
+        <div class="card p-4">
+          <div class="flex items-center gap-2 mb-4">
+            <mat-icon [svgIcon]="alerteMedicale ? 'mat:warning' : 'mat:assignment'" class="icon-sm"
+              [ngClass]="alerteMedicale ? 'text-red-600' : 'text-primary-600'"></mat-icon>
+            <h3 class="body-1 font-semibold m-0 flex-auto">Antécédents médicaux</h3>
+            <button mat-icon-button type="button" (click)="editer('medical')" matTooltip="Modifier le dossier médical">
+              <mat-icon svgIcon="mat:edit" class="icon-sm"></mat-icon>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <p class="m-0 caption text-hint">Groupe sanguin</p>
+              <p class="m-0 body-2 font-medium">{{ valeur(eleve.groupe_sanguin) }}</p>
+            </div>
+            <div>
+              <p class="m-0 caption text-hint">Aptitude sportive</p>
+              <p class="m-0 body-2" [ngClass]="eleve.aptitude_sportive !== 'APTE' ? 'text-red-600 font-medium' : ''">
+                {{ aptitudeLabel }}
+              </p>
+            </div>
+            <div>
+              <p class="m-0 caption text-hint">Allergies</p>
+              <p class="m-0 body-2">{{ valeur(eleve.allergies) }}</p>
+            </div>
+            <div class="sm:col-span-3">
+              <p class="m-0 caption text-hint">Maladies chroniques</p>
+              <p class="m-0 body-2">{{ valeur(eleve.maladies_chroniques) }}</p>
+            </div>
+            <div class="sm:col-span-3" *ngIf="eleve.consignes_urgence">
+              <p class="m-0 caption text-hint">Consignes d'urgence</p>
+              <p class="m-0 body-2 px-3 py-2 rounded bg-red-50 text-red-800 border border-red-200">
+                {{ eleve.consignes_urgence }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scolarite -->
+        <div class="card p-4">
+          <div class="flex items-center gap-2 mb-4">
+            <mat-icon svgIcon="mat:school" class="icon-sm text-primary-600"></mat-icon>
+            <h3 class="body-1 font-semibold m-0 flex-auto">Scolarité</h3>
+            <button mat-icon-button type="button" (click)="editer('scolarite')" matTooltip="Modifier la scolarité">
+              <mat-icon svgIcon="mat:edit" class="icon-sm"></mat-icon>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <p class="m-0 caption text-hint">Statut</p>
+              <p class="m-0 body-2">{{ statutLabel }}</p>
+            </div>
+            <div>
+              <p class="m-0 caption text-hint">Classe actuelle</p>
+              <p class="m-0 body-2">{{ valeur(eleve.classe_actuelle?.nom) }}</p>
+            </div>
+            <div>
+              <p class="m-0 caption text-hint">Première inscription</p>
+              <p class="m-0 body-2">{{ eleve.date_inscription | date : 'dd/MM/yyyy' }}</p>
+            </div>
+            <div class="sm:col-span-3" *ngIf="eleve.statut_inscription === 'TRANSFERE'">
+              <p class="m-0 caption text-hint">Établissement d'origine</p>
+              <p class="m-0 body-2">{{ valeur(eleve.etablissement_origine) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Parents -->
+        <div class="card p-4">
+          <div class="flex items-center gap-2 mb-4">
+            <mat-icon svgIcon="mat:contacts" class="icon-sm text-primary-600"></mat-icon>
+            <h3 class="body-1 font-semibold m-0 flex-auto">Parents</h3>
+            <button mat-icon-button type="button" (click)="editer('parents')" matTooltip="Modifier les parents">
+              <mat-icon svgIcon="mat:edit" class="icon-sm"></mat-icon>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+              <p class="m-0 caption font-medium text-primary-600 mb-2">Le père</p>
+
+              <ng-container *ngIf="pereRenseigne; else perePasRenseigne">
+                <div class="flex flex-col gap-2">
+                  <div>
+                    <p class="m-0 caption text-hint">Nom complet</p>
+                    <p class="m-0 body-2">{{ valeur(eleve.prenom_pere) }} {{ valeur(eleve.nom_pere) }}</p>
+                  </div>
+                  <div>
+                    <p class="m-0 caption text-hint">Téléphone</p>
+                    <p class="m-0 body-2">{{ valeur(eleve.telephone_pere) }}</p>
+                  </div>
+                  <div>
+                    <p class="m-0 caption text-hint">Profession</p>
+                    <p class="m-0 body-2">{{ valeur(eleve.profession_pere) }}</p>
+                  </div>
+                  <div *ngIf="eleve.adresse_pere">
+                    <p class="m-0 caption text-hint">Adresse</p>
+                    <p class="m-0 body-2">{{ eleve.adresse_pere }}</p>
+                  </div>
+                </div>
+              </ng-container>
+
+              <ng-template #perePasRenseigne>
+                <p class="m-0 caption text-hint italic">Non renseigné</p>
+              </ng-template>
+            </div>
+
+            <div>
+              <p class="m-0 caption font-medium text-primary-600 mb-2">La mère</p>
+
+              <ng-container *ngIf="mereRenseignee; else merePasRenseignee">
+                <div class="flex flex-col gap-2">
+                  <div>
+                    <p class="m-0 caption text-hint">Nom complet (jeune fille)</p>
+                    <p class="m-0 body-2">{{ valeur(eleve.prenom_mere) }} {{ valeur(eleve.nom_mere) }}</p>
+                  </div>
+                  <div>
+                    <p class="m-0 caption text-hint">Téléphone</p>
+                    <p class="m-0 body-2">{{ valeur(eleve.telephone_mere) }}</p>
+                  </div>
+                  <div>
+                    <p class="m-0 caption text-hint">Profession</p>
+                    <p class="m-0 body-2">{{ valeur(eleve.profession_mere) }}</p>
+                  </div>
+                  <div *ngIf="eleve.adresse_mere">
+                    <p class="m-0 caption text-hint">Adresse</p>
+                    <p class="m-0 body-2">{{ eleve.adresse_mere }}</p>
+                  </div>
+                </div>
+              </ng-container>
+
+              <ng-template #merePasRenseignee>
+                <p class="m-0 caption text-hint italic">Non renseignée</p>
+              </ng-template>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tuteur legal -->
+        <div class="card p-4">
+          <div class="flex items-center gap-2 mb-4">
+            <mat-icon svgIcon="mat:verified_user" class="icon-sm text-primary-600"></mat-icon>
+            <h3 class="body-1 font-semibold m-0 flex-auto">
+              Tuteur légal
+              <span class="caption text-hint font-normal">(responsable financier)</span>
+            </h3>
+            <!-- L'accès de connexion : sans lui, le tuteur ne peut pas
+                 utiliser la messagerie. Réservé à l'admin et au manager, comme
+                 côté serveur. -->
+            <button *ngIf="eleve.tuteur && peutGererAcces" mat-stroked-button type="button"
+              (click)="gererAccesTuteur()"
+              [matTooltip]="eleve.tuteur.user_id ? 'Générer un nouveau mot de passe' : 'Permettre au tuteur de se connecter'">
+              <mat-icon svgIcon="mat:lock" class="icon-sm ltr:mr-2 rtl:ml-2"></mat-icon>
+              {{ eleve.tuteur.user_id ? 'Réinitialiser l\'accès' : 'Ouvrir un accès' }}
+            </button>
+
+            <button mat-icon-button type="button" (click)="editer('tuteur')" matTooltip="Modifier le tuteur">
+              <mat-icon svgIcon="mat:edit" class="icon-sm"></mat-icon>
+            </button>
+          </div>
+
+          <ng-container *ngIf="eleve.tuteur; else pasDeTuteur">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <p class="m-0 caption text-hint">Nom complet</p>
+                <p class="m-0 body-2 font-medium">{{ eleve.tuteur.prenom }} {{ eleve.tuteur.nom }}</p>
+              </div>
+              <div>
+                <p class="m-0 caption text-hint">Lien de parenté</p>
+                <p class="m-0 body-2">{{ lienParenteLabel }}</p>
+              </div>
+              <div>
+                <p class="m-0 caption text-hint">NIN</p>
+                <p class="m-0 body-2">{{ valeur(eleve.tuteur.nin) }}</p>
+              </div>
+              <div>
+                <p class="m-0 caption text-hint">Téléphone principal</p>
+                <p class="m-0 body-2 font-medium">{{ eleve.tuteur.telephone_principal }}</p>
+              </div>
+              <div>
+                <p class="m-0 caption text-hint">Téléphone secondaire</p>
+                <p class="m-0 body-2">{{ valeur(eleve.tuteur.telephone_secondaire) }}</p>
+              </div>
+              <div>
+                <p class="m-0 caption text-hint">Email</p>
+                <p class="m-0 body-2">{{ valeur(eleve.tuteur.email) }}</p>
+              </div>
+              <div>
+                <p class="m-0 caption text-hint">Profession</p>
+                <p class="m-0 body-2">{{ valeur(eleve.tuteur.profession) }}</p>
+              </div>
+              <div class="sm:col-span-2">
+                <p class="m-0 caption text-hint">Adresse</p>
+                <p class="m-0 body-2">{{ eleve.tuteur.adresse }}</p>
+              </div>
+
+              <!-- État de l'accès : c'est ce que l'agent vient vérifier quand
+                   une famille dit ne pas pouvoir se connecter. -->
+              <div>
+                <p class="m-0 caption text-hint">Accès à l'espace tuteur</p>
+                <p class="m-0 body-2 flex items-center gap-1">
+                  <mat-icon class="icon-xs"
+                    [svgIcon]="eleve.tuteur.user_id ? 'mat:check_circle' : 'mat:cancel'"
+                    [class.text-emerald-600]="eleve.tuteur.user_id"
+                    [class.text-hint]="!eleve.tuteur.user_id"></mat-icon>
+                  <span>{{ eleve.tuteur.user_id ? 'Actif' : 'Aucun accès' }}</span>
+                </p>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-template #pasDeTuteur>
+            <p class="m-0 caption text-hint italic">Aucun tuteur rattaché.</p>
+          </ng-template>
+        </div>
+
+      </ng-container>
+
+    </div>
+  </div>
+
+</div>

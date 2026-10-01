@@ -1,0 +1,55 @@
+<form [formGroup]="form" (ngSubmit)="enregistrer()">
+
+  <div mat-dialog-title class="flex items-center gap-3">
+    <mat-icon svgIcon="mat:ballot" class="text-primary-600"></mat-icon>
+    <div>
+      <p class="m-0 title">Conseil de classe</p>
+      <p class="m-0 caption text-hint">{{ eleve }} &bull; {{ data.bulletin.classe_nom }}</p>
+    </div>
+  </div>
+
+  <mat-dialog-content class="flex flex-col gap-6 pt-2">
+
+    <!-- Bloc de gauche du bulletin papier -->
+    <div>
+      <p class="m-0 mb-3 body-2 font-medium">Appréciation générale</p>
+      <mat-radio-group formControlName="decision_conseil" class="flex flex-col gap-2">
+        <mat-radio-button [value]="null" class="caption text-hint">Aucune</mat-radio-button>
+        <mat-radio-button *ngFor="let d of decisions" [value]="d.value">
+          {{ d.label }}
+        </mat-radio-button>
+      </mat-radio-group>
+    </div>
+
+    <!-- Bloc de droite du bulletin papier -->
+    <div>
+      <p class="m-0 mb-3 body-2 font-medium">Distinction</p>
+      <mat-radio-group formControlName="distinction" class="flex flex-col gap-2">
+        <mat-radio-button [value]="null" class="caption text-hint">Aucune</mat-radio-button>
+        <mat-radio-button *ngFor="let d of distinctions" [value]="d.value">
+          {{ d.label }}
+        </mat-radio-button>
+      </mat-radio-group>
+    </div>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Observations du conseil des professeurs</mat-label>
+      <textarea matInput formControlName="observations" rows="4"
+        placeholder="Observations portées sur le bulletin"></textarea>
+      <mat-hint align="end">{{ observationsLength }} / 2000</mat-hint>
+      <mat-error *ngIf="form.get('observations')?.hasError('maxlength')">
+        Les observations ne peuvent pas dépasser 2000 caractères.
+      </mat-error>
+    </mat-form-field>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="gap-2">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving">Annuler</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || saving">
+      <mat-spinner *ngIf="saving" diameter="18" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+      Enregistrer
+    </button>
+  </mat-dialog-actions>
+
+</form>

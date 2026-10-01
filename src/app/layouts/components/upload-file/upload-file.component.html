@@ -1,0 +1,122 @@
+<div class="max-w-md mx-auto p-6 bg-white rounded-xl shadow-lg">
+  <!-- Zone de dépôt principale - Simplifiée -->
+  <div
+    class="border-2 border-dashed rounded-lg p-4 text-center transition-all duration-300 ease-in-out min-h-[300px] flex items-center justify-center cursor-pointer"
+    [class]="isDragging
+      ? 'border-blue-500 bg-blue-50'
+      : (selectedFile || hasDefaultImage ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50 hover:border-gray-400')"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+    (click)="onZoneClick($event)"
+  >
+    <!-- Contenu unifié pour tous les états -->
+    <div class="w-full space-y-4">
+
+      <!-- État initial (sans fichier et sans image par défaut) -->
+      <div *ngIf="!selectedFile && !hasDefaultImage">
+        <!-- Icône d'upload -->
+        <div class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+          <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+        </div>
+
+        <!-- Texte d'instructions -->
+        <div class="space-y-2 mt-4">
+          <p class="text-lg font-semibold text-gray-700">
+            Glissez-déposez votre image
+          </p>
+          <p class="text-sm text-gray-500">
+            ou <span class="text-blue-600 font-medium">cliquez pour parcourir</span>
+          </p>
+        </div>
+
+        <!-- Informations sur les formats acceptés -->
+        <div class="text-xs text-gray-400 space-y-1 mt-4">
+          <p>Formats supportés: JPEG, PNG, GIF, WebP, etc.</p>
+          <p>Taille maximale: {{ maxFileSize }} Mo</p>
+        </div>
+      </div>
+
+      <!-- État avec image (fichier sélectionné OU image par défaut) -->
+      <div *ngIf="(selectedFile && previewUrl) || (hasDefaultImage && previewUrl)">
+        <!-- Prévisualisation de l'image -->
+        <div class="relative mx-auto w-24 md:w-32">
+          <div class="aspect-[3/4] rounded-lg overflow-hidden border-2 border-gray-200 shadow-md bg-gray-100">
+            <img
+              [src]="previewUrl"
+              [alt]="getDisplayName()"
+              class="w-full h-full object-cover"
+            />
+          </div>
+
+          <!-- Badge de statut -->
+          <div *ngIf="selectedFile" class="absolute -top-2 -right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium shadow-lg">
+            ✓ Nouvelle
+          </div>
+
+          <div *ngIf="hasDefaultImage && !selectedFile" class="absolute -top-2 -right-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-medium shadow-lg">
+            📷 Actuelle
+          </div>
+        </div>
+
+        <!-- Informations du fichier -->
+        <div class="space-y-2 text-sm px-4 mt-4">
+          <p class="font-medium text-gray-700 truncate" [title]="getDisplayName()">
+            {{ getDisplayName() }}
+          </p>
+          <p *ngIf="selectedFile" class="text-gray-500">
+            {{ getFileSizeInMB(selectedFile.size) }} Mo
+          </p>
+          <p *ngIf="hasDefaultImage && !selectedFile" class="text-gray-500 text-xs">
+            Cliquez n'importe où pour changer l'image
+          </p>
+          <p *ngIf="selectedFile" class="text-gray-500 text-xs">
+            Cliquez n'importe où pour choisir une autre image
+          </p>
+        </div>
+      </div>
+
+      <!-- Bouton de réinitialisation - Toujours visible si on a une image -->
+      <div *ngIf="selectedFile || hasDefaultImage" class="pt-2">
+        <button
+          (click)="removeFile(); $event.stopPropagation()"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors duration-200 font-medium text-sm"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+          {{ hasDefaultImage && !selectedFile ? 'Supprimer' : 'Rétablir' }}
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Input file caché -->
+    <input
+      #fileInput
+      type="file"
+      [accept]="acceptedFormats"
+      (change)="onFileSelected($event)"
+      class="hidden"
+    />
+  </div>
+
+  <!-- Messages d'erreur -->
+  <div *ngIf="validationErrors.length > 0" class="mt-4 space-y-2">
+    <div *ngFor="let error of validationErrors"
+         class="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+      <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+      </svg>
+      <span>{{ error }}</span>
+    </div>
+  </div>
+
+  <!-- Indicateur de chargement -->
+  <div *ngIf="isLoading" class="mt-4 flex justify-center">
+    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  </div>
+</div>

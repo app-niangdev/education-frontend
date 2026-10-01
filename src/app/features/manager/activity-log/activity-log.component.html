@@ -1,0 +1,267 @@
+<vex-page-layout>
+
+  <vex-page-layout-header class="pb-16 flex flex-col items-start justify-center">
+    <div class="w-full flex flex-col sm:flex-row justify-between container">
+      <div>
+        <h1 class="title mt-0 mb-1">Journal d'activité</h1>
+        <vex-breadcrumbs [crumbs]="['Manager', 'Journal d\'activité']"></vex-breadcrumbs>
+      </div>
+    </div>
+  </vex-page-layout-header>
+
+  <vex-page-layout-content class="container -mt-6">
+
+    <div class="card overflow-auto -mt-16">
+
+      <!-- ── Toolbar ── -->
+      <div class="bg-app-bar px-6 h-16 border-b sticky left-0 flex items-center gap-4">
+
+        <h2 class="title my-0 pr-4 mr-4 border-r hidden sm:block flex-none">
+          Journal d'activité
+        </h2>
+
+        <!-- Recherche -->
+        <mat-form-field subscriptSizing="dynamic" class="flex-auto">
+          <mat-icon matIconPrefix svgIcon="mat:search"></mat-icon>
+          <input matInput [formControl]="searchCtrl" placeholder="Rechercher par utilisateur, module, description…" type="text" />
+        </mat-form-field>
+
+        <span class="flex-1"></span>
+
+        <!-- Bouton reset filtres -->
+        <button mat-icon-button type="button" matTooltip="Réinitialiser les filtres" (click)="resetFilters()">
+          <mat-icon svgIcon="mat:clear_all"></mat-icon>
+        </button>
+
+        <!-- Filtre avancé -->
+        <button mat-icon-button type="button" matTooltip="Filtres avancés" [matMenuTriggerFor]="advancedFilterMenu">
+          <mat-icon svgIcon="mat:ballot"></mat-icon>
+        </button>
+
+        <!-- Filtre colonnes -->
+        <button mat-icon-button type="button" matTooltip="Afficher / masquer colonnes" [matMenuTriggerFor]="columnFilterMenu">
+          <mat-icon svgIcon="mat:settings"></mat-icon>
+        </button>
+
+      </div>
+
+      <!-- ── Spinner ── -->
+      <div *ngIf="loading" class="flex items-center justify-center py-12">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+
+      <!-- ── Table ── -->
+      <!-- multiTemplateDataRows : indispensable pour la ligne de détail.
+           Sans lui, Material ne rend qu'UNE ligne par entrée et retient le
+           premier matRowDef correspondant — la ligne détail n'était jamais
+           affichée. -->
+      <table *ngIf="!loading" mat-table [dataSource]="dataSource" matSort
+        multiTemplateDataRows @stagger class="w-full">
+
+        <!-- Date -->
+        <ng-container matColumnDef="created_at">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="uppercase">Date</th>
+          <td mat-cell *matCellDef="let row" class="text-secondary text-sm whitespace-nowrap">
+            {{ row.created_at | date:'dd/MM/yyyy HH:mm' }}
+          </td>
+        </ng-container>
+
+        <!-- Utilisateur -->
+        <ng-container matColumnDef="user">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="uppercase">Utilisateur</th>
+          <td mat-cell *matCellDef="let row" class="font-medium">
+            {{ userName(row) }}
+          </td>
+        </ng-container>
+
+        <!-- Action (badge) -->
+        <ng-container matColumnDef="action">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="uppercase">Action</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="rounded px-2 py-1 font-medium text-xs"
+              [ngClass]="[actionBadgeFor(row.action).bgClass, actionBadgeFor(row.action).textClass]">
+              {{ actionBadgeFor(row.action).text }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Module (badge) -->
+        <ng-container matColumnDef="module">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="uppercase">Module</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="rounded px-2 py-1 font-medium text-xs"
+              [ngClass]="[moduleBadgeFor(row.module).bgClass, moduleBadgeFor(row.module).textClass]">
+              {{ moduleBadgeFor(row.module).text }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Description -->
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef class="uppercase">Description</th>
+          <td mat-cell *matCellDef="let row" class="max-w-xs truncate"
+            [matTooltip]="row.description">
+            {{ row.description }}
+          </td>
+        </ng-container>
+
+        <!-- IP -->
+        <ng-container matColumnDef="ip_address">
+          <th mat-header-cell *matHeaderCellDef class="uppercase">IP</th>
+          <td mat-cell *matCellDef="let row" class="text-secondary text-sm">
+            {{ row.ip_address ?? '—' }}
+          </td>
+        </ng-container>
+
+        <!-- Actions -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="w-10"></th>
+          <td mat-cell *matCellDef="let row" class="w-10 text-secondary">
+            <button mat-icon-button type="button"
+              (click)="$event.stopPropagation()"
+              [matMenuTriggerFor]="actionsMenu"
+              [matMenuTriggerData]="{ log: row }">
+              <mat-icon svgIcon="mat:more_vert"></mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="visibleColumns"></tr>
+        <!-- Pas de @fadeInUp ici : combiné au @stagger du tableau, il laissait
+             les lignes insérées après coup (la ligne de détail) à opacity 0. -->
+        <tr mat-row *matRowDef="let row; columns: visibleColumns"
+          (click)="toggleExpand(row.id)"
+          class="hover:bg-hover transition duration-400 ease-out-swift cursor-pointer"
+          [class.bg-hover]="expanded === row.id">
+        </tr>
+
+        <!-- Ligne détail expandable -->
+        <ng-container matColumnDef="expandedDetail">
+          <td mat-cell *matCellDef="let row" [colSpan]="visibleColumns.length" class="p-0">
+            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-b text-sm">
+
+              <!-- Champs modifiés : uniquement ce qui a réellement changé,
+                   plutôt qu'un dump JSON des deux états complets. -->
+              <ng-container *ngIf="changesFor(row) as changes">
+                <div *ngIf="changes.length" class="overflow-x-auto">
+                  <table class="w-full text-xs border-collapse">
+                    <thead>
+                      <tr class="text-secondary uppercase">
+                        <th class="text-left font-semibold py-1 pr-4">Champ</th>
+                        <th class="text-left font-semibold py-1 pr-4">Avant</th>
+                        <th class="text-left font-semibold py-1">Après</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let change of changes" class="border-t">
+                        <td class="py-1 pr-4 font-medium whitespace-nowrap">{{ change.label }}</td>
+                        <td class="py-1 pr-4 text-red-700 dark:text-red-400 break-all">{{ change.before }}</td>
+                        <td class="py-1 text-green-700 dark:text-green-400 break-all">{{ change.after }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <p *ngIf="!changes.length" class="m-0 text-hint text-xs">
+                  Aucun détail enregistré pour cette action.
+                </p>
+              </ng-container>
+
+              <!-- IP + User agent -->
+              <div class="flex flex-wrap gap-6 text-secondary text-xs mt-3 pt-3 border-t">
+                <span><strong>IP :</strong> {{ row.ip_address ?? '—' }}</span>
+                <span *ngIf="row.user_agent" class="break-all"><strong>Client :</strong> {{ row.user_agent }}</span>
+              </div>
+
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-row *matRowDef="let row; columns: ['expandedDetail']; when: isExpanded"></tr>
+
+        <!-- Empty state -->
+        <tr class="mat-row" *matNoDataRow>
+          <td [colSpan]="visibleColumns.length" class="py-12 text-center text-hint caption">
+            Aucune entrée dans le journal
+          </td>
+        </tr>
+
+      </table>
+
+      <!-- ── Pagination serveur ── -->
+      <mat-paginator
+        [length]="meta.total"
+        [pageSize]="meta.per_page"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        (page)="onPageChange($event)"
+        class="sticky left-0">
+      </mat-paginator>
+
+    </div>
+
+  </vex-page-layout-content>
+</vex-page-layout>
+
+<!-- ── Menu filtre colonnes ── -->
+<mat-menu #columnFilterMenu="matMenu" xPosition="before" yPosition="below">
+  <button *ngFor="let column of columns; trackBy: trackByProperty" mat-menu-item
+    (click)="toggleColumn(column, $event)" class="block">
+    <mat-checkbox color="primary"
+      (click)="$event.stopPropagation()"
+      [(ngModel)]="column.visible">
+      {{ column.label }}
+    </mat-checkbox>
+  </button>
+</mat-menu>
+
+<!-- ── Menu filtres avancés ── -->
+<mat-menu #advancedFilterMenu="matMenu" xPosition="before" yPosition="below" class="w-72">
+  <div class="px-4 py-3 flex flex-col gap-3" (click)="$event.stopPropagation()" [formGroup]="filterForm">
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>Action</mat-label>
+      <mat-select formControlName="action">
+        <mat-option *ngFor="let opt of actionOptions" [value]="opt.value">
+          {{ opt.label }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>Module</mat-label>
+      <mat-select formControlName="module">
+        <mat-option *ngFor="let opt of moduleOptions" [value]="opt.value">
+          {{ opt.label }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>Du</mat-label>
+      <input matInput [matDatepicker]="pickerFrom" formControlName="date_from" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerFrom"></mat-datepicker-toggle>
+      <mat-datepicker #pickerFrom></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>Au</mat-label>
+      <input matInput [matDatepicker]="pickerTo" formControlName="date_to" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerTo"></mat-datepicker-toggle>
+      <mat-datepicker #pickerTo></mat-datepicker>
+    </mat-form-field>
+
+  </div>
+</mat-menu>
+
+<!-- ── Menu actions par ligne ── -->
+<mat-menu #actionsMenu="matMenu" xPosition="before" yPosition="below">
+  <ng-template matMenuContent let-log="log">
+    <!-- stopPropagation : sans lui, le clic remonte jusqu'au (click) de la
+         ligne, qui rappelle toggleExpand et annule aussitôt la bascule. -->
+    <button mat-menu-item type="button"
+      (click)="toggleExpand(log.id); $event.stopPropagation()">
+      <mat-icon svgIcon="mat:visibility"></mat-icon>
+      <span>{{ expanded === log.id ? 'Réduire' : 'Voir les détails' }}</span>
+    </button>
+  </ng-template>
+</mat-menu>

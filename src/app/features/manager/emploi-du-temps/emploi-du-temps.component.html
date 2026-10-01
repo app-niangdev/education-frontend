@@ -1,0 +1,225 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- Header -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0 gap-3">
+      <button mat-icon-button type="button" (click)="goBack()" matTooltip="Retour aux classes">
+        <mat-icon svgIcon="mat:arrow_back"></mat-icon>
+      </button>
+
+      <h2 class="display-1 font-bold m-0 flex items-center w-full">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:date_range"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">
+          Emploi du temps
+          <span class="block body-1 font-normal text-hint" *ngIf="classe">
+            Classe {{ classe.nom }}
+          </span>
+        </span>
+      </h2>
+
+      <div class="flex-none flex items-center gap-2">
+        <!-- Desktop -->
+        <button mat-stroked-button type="button" (click)="downloadPdf()"
+          [disabled]="!classe || !hasCreneaux || downloading" class="hidden sm:inline-flex">
+          <mat-icon *ngIf="!downloading" svgIcon="mat:description" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+          <mat-spinner *ngIf="downloading" diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+          PDF
+        </button>
+
+        <button color="primary" mat-raised-button type="button" (click)="openAdd()"
+          [disabled]="!classe" class="hidden sm:inline-flex">
+          <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+          Ajouter un créneau
+        </button>
+
+        <!-- Mobile : actions dans un menu -->
+        <button mat-icon-button type="button" class="sm:hidden" [disabled]="!classe"
+          [matMenuTriggerFor]="headerMenu" aria-label="Actions">
+          <mat-icon svgIcon="mat:more_vert"></mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid px-6">
+    <div class="mt-6 flex flex-col gap-6">
+
+      <div class="card">
+        <div class="px-6 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="title m-0">Planning hebdomadaire</h2>
+            <p class="m-0 caption text-hint">
+              {{ vue === 'grille' ? 'Cliquez sur une plage pour ajouter un cours' : 'Créneaux de cours par jour' }}
+            </p>
+          </div>
+
+          <!-- Bascule Grille / Liste (grille indisponible sur mobile) -->
+          <div class="hidden sm:flex rounded-lg border border-gray-300 overflow-hidden flex-none self-start sm:self-auto">
+            <button type="button" (click)="vue = 'grille'"
+              class="px-3 py-1.5 body-2 flex items-center gap-1 transition-colors"
+              [class.bg-primary-600]="vue === 'grille'"
+              [class.text-white]="vue === 'grille'"
+              [class.text-hint]="vue !== 'grille'">
+              <mat-icon svgIcon="mat:dashboard" class="icon-sm"></mat-icon>
+              Grille
+            </button>
+            <button type="button" (click)="vue = 'liste'"
+              class="px-3 py-1.5 body-2 flex items-center gap-1 transition-colors border-l border-gray-300"
+              [class.bg-primary-600]="vue === 'liste'"
+              [class.text-white]="vue === 'liste'"
+              [class.text-hint]="vue !== 'liste'">
+              <mat-icon svgIcon="mat:assignment" class="icon-sm"></mat-icon>
+              Liste
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="loading" class="flex flex-col items-center justify-center gap-4 p-12">
+          <mat-spinner diameter="48"></mat-spinner>
+          <p class="m-0 text-hint">Chargement en cours...</p>
+        </div>
+
+        <ng-container *ngIf="!loading">
+
+          <!-- ===== VUE GRILLE ===== -->
+          <div *ngIf="vue === 'grille'" class="p-4 overflow-x-auto">
+            <table class="edt-grid w-full min-w-[720px]">
+              <thead>
+                <tr>
+                  <th class="edt-time-head">Heure</th>
+                  <th *ngFor="let j of jours">{{ j.libelle }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of grille">
+                  <td class="edt-time">{{ row.slot.debut }}</td>
+                  <ng-container *ngFor="let cell of row.cells">
+                    <!-- Case vide : clic pour ajouter -->
+                    <td *ngIf="cell.type === 'vide'" class="edt-cell edt-cell-vide"
+                      (click)="openAddAt(cell.jour, row.slot.debut)"
+                      matTooltip="Ajouter un cours">
+                      <span class="edt-add">
+                        <mat-icon svgIcon="mat:add" class="icon-sm"></mat-icon>
+                      </span>
+                    </td>
+                    <!-- Case cours : bloc, clic pour modifier -->
+                    <td *ngIf="cell.type === 'cours'" [attr.rowspan]="cell.rowspan"
+                      class="edt-cell edt-cell-cours" (click)="editCreneau(cell.creneau!)">
+                      <button mat-icon-button type="button" class="edt-del"
+                        (click)="$event.stopPropagation(); deleteCreneau(cell.creneau!)"
+                        matTooltip="Supprimer">
+                        <mat-icon svgIcon="mat:close" class="icon-xs"></mat-icon>
+                      </button>
+                      <p class="m-0 body-2 font-semibold leading-tight">{{ matiereNom(cell.creneau!) }}</p>
+                      <p class="m-0 caption leading-tight opacity-90">{{ enseignantNom(cell.creneau!) }}</p>
+                      <p class="m-0 caption leading-tight opacity-75">
+                        {{ heure(cell.creneau!.heure_debut) }}–{{ heure(cell.creneau!.heure_fin) }}
+                        <ng-container *ngIf="cell.creneau!.salle"> • {{ cell.creneau!.salle }}</ng-container>
+                      </p>
+                    </td>
+                  </ng-container>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- ===== VUE LISTE ===== -->
+          <!-- Grille par jour -->
+          <div class="divide-y" *ngIf="vue === 'liste' && hasCreneaux">
+            <div *ngFor="let jour of joursGroupes" class="flex flex-col sm:flex-row">
+              <!-- Colonne jour -->
+              <div class="sm:w-40 flex-none px-6 py-4 bg-primary-600/5 flex items-center gap-2">
+                <mat-icon svgIcon="mat:date_range" class="icon-sm text-primary-600"></mat-icon>
+                <span class="body-1 font-semibold text-primary-600">{{ jour.libelle }}</span>
+              </div>
+
+              <!-- Creneaux du jour -->
+              <div class="flex-auto divide-y">
+                <div *ngFor="let c of jour.creneaux"
+                  class="px-6 py-3 flex items-center justify-between gap-4 hover:bg-gray-50 transition-colors duration-150">
+
+                  <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 flex-auto min-w-0">
+                    <!-- Horaire -->
+                    <div class="flex items-center gap-1 sm:w-32 flex-none text-primary-600">
+                      <mat-icon svgIcon="mat:access_time" class="icon-sm"></mat-icon>
+                      <span class="body-2 font-semibold">
+                        {{ heure(c.heure_debut) }} – {{ heure(c.heure_fin) }}
+                      </span>
+                    </div>
+
+                    <!-- Matiere + enseignant -->
+                    <div class="flex-auto min-w-0">
+                      <p class="m-0 body-2 font-semibold">{{ matiereNom(c) }}</p>
+                      <p class="m-0 caption text-hint flex items-center gap-1">
+                        <mat-icon svgIcon="mat:person" class="icon-xs"></mat-icon>
+                        {{ enseignantNom(c) }}
+                        <ng-container *ngIf="c.salle">
+                          &bull; Salle {{ c.salle }}
+                        </ng-container>
+                      </p>
+                    </div>
+                  </div>
+
+                  <button mat-icon-button type="button"
+                    [matMenuTriggerFor]="actionsMenu"
+                    [matMenuTriggerData]="{ creneau: c }">
+                    <mat-icon svgIcon="mat:more_vert"></mat-icon>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div *ngIf="vue === 'liste' && !hasCreneaux"
+            class="flex flex-col items-center justify-center gap-4 p-12">
+            <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+              <mat-icon svgIcon="mat:date_range" class="icon-lg"></mat-icon>
+            </div>
+            <h3 class="title m-0">Emploi du temps vide</h3>
+            <p class="m-0 caption text-hint text-center">
+              Ajoutez des créneaux de cours à partir des matières affectées de cette classe.
+            </p>
+            <button color="primary" mat-raised-button type="button" (click)="openAdd()" [disabled]="!classe">
+              <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+              Ajouter un créneau
+            </button>
+          </div>
+
+        </ng-container>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Menu d'en-tête (mobile) -->
+<mat-menu #headerMenu="matMenu" xPosition="before" yPosition="below">
+  <button mat-menu-item (click)="openAdd()" [disabled]="!classe">
+    <mat-icon svgIcon="mat:add" class="mr-2"></mat-icon>
+    <span>Ajouter un créneau</span>
+  </button>
+  <button mat-menu-item (click)="downloadPdf()" [disabled]="!classe || !hasCreneaux || downloading">
+    <mat-icon svgIcon="mat:description" class="mr-2"></mat-icon>
+    <span>{{ downloading ? 'Génération…' : 'Télécharger le PDF' }}</span>
+  </button>
+</mat-menu>
+
+<!-- Context menu -->
+<mat-menu #actionsMenu="matMenu" xPosition="before" yPosition="below">
+  <ng-template let-creneau="creneau" matMenuContent>
+    <button mat-menu-item (click)="editCreneau(creneau)">
+      <mat-icon svgIcon="mat:edit" class="mr-2"></mat-icon>
+      <span>Modifier</span>
+    </button>
+    <button mat-menu-item (click)="deleteCreneau(creneau)" class="text-red-600">
+      <mat-icon svgIcon="mat:delete" class="mr-2"></mat-icon>
+      <span>Supprimer</span>
+    </button>
+  </ng-template>
+</mat-menu>

@@ -1,0 +1,184 @@
+<vex-liste-page
+  icon="mat:assignment"
+  titre="Inscriptions"
+  titreCarte="Liste des inscriptions"
+  sousTitre="Année scolaire en cours"
+  [loading]="loading"
+  [vide]="inscriptions().length === 0"
+  [aDesFiltres]="true"
+  [meta]="meta()"
+  [pageSizeOptions]="meta().pageSizeOptions ?? [5, 10, 25, 50]"
+  (pageChange)="onPageChange($event)">
+
+  <!-- Action en-tête -->
+  <button entete *ngIf="peutInscrire" color="primary" mat-raised-button type="button"
+    (click)="nouvelleInscription()" class="hidden sm:inline-flex">
+    <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    Réinscrire un élève
+  </button>
+
+  <!-- Filtres : appliqués au clic sur « Rechercher » (ou touche Entrée) -->
+  <form filtres [formGroup]="form" (ngSubmit)="rechercher()"
+    class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-4 w-full">
+    <mat-form-field appearance="outline" class="w-full sm:w-56" subscriptSizing="dynamic">
+      <mat-label>Recherche générale</mat-label>
+      <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+      <input matInput formControlName="search" placeholder="Élève, classe..." />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full sm:w-48" subscriptSizing="dynamic">
+      <mat-label>Matricule élève</mat-label>
+      <mat-icon matPrefix svgIcon="mat:badge" class="mr-2 text-hint icon-sm"></mat-icon>
+      <input matInput formControlName="matricule" placeholder="Ex. ELV-2026-001" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full sm:w-48" subscriptSizing="dynamic">
+      <mat-label>N° inscription</mat-label>
+      <mat-icon matPrefix svgIcon="mat:receipt" class="mr-2 text-hint icon-sm"></mat-icon>
+      <input matInput formControlName="numero" placeholder="Ex. INS-2026-001" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full sm:w-40" subscriptSizing="dynamic">
+      <mat-label>Classe</mat-label>
+      <mat-select formControlName="classe">
+        <mat-option value="">Toutes les classes</mat-option>
+        <mat-option *ngFor="let c of classes" [value]="c.id">{{ c.nom }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full sm:w-40" subscriptSizing="dynamic">
+      <mat-label>Statut</mat-label>
+      <mat-select formControlName="statut">
+        <mat-option value="">Tous les statuts</mat-option>
+        <mat-option *ngFor="let s of statuts" [value]="s.value">{{ s.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full sm:w-40" subscriptSizing="dynamic">
+      <mat-label>Paiement</mat-label>
+      <mat-select formControlName="paiement">
+        <mat-option value="">Tous</mat-option>
+        <mat-option *ngFor="let p of statutsPaiement" [value]="p.value">{{ p.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full sm:w-40" subscriptSizing="dynamic">
+      <mat-label>Type</mat-label>
+      <mat-select formControlName="type">
+        <mat-option value="">Tous</mat-option>
+        <mat-option *ngFor="let t of types" [value]="t.value">{{ t.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="submit" class="flex-none">
+      <mat-icon svgIcon="mat:search" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+      Rechercher
+    </button>
+    <button *ngIf="filtreActif" mat-stroked-button type="button" (click)="reinitialiserFiltres()" class="flex-none">
+      <mat-icon svgIcon="mat:clear_all" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+      Réinitialiser
+    </button>
+  </form>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let inscription of inscriptions()"
+    [ligneClass]="estAnnulee(inscription) ? 'opacity-60' : ''">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+      <mat-icon svgIcon="mat:assignment" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">
+        {{ inscription.eleve?.nom_complet ?? '—' }}
+        <span class="caption text-hint font-normal">({{ inscription.eleve?.matricule }})</span>
+      </p>
+      <p class="m-0 caption text-hint">
+        <span class="font-medium text-primary-600">{{ inscription.numero_inscription }}</span>
+        &bull; <span>{{ inscription.classe?.nom ?? '—' }}</span>
+        &bull; <span>{{ typeLabel(inscription) }}</span>
+        &bull; <span>{{ inscription.date_inscription | date : 'dd/MM/yyyy' }}</span>
+      </p>
+    </div>
+
+    <!-- Montant + paiement + statut à droite -->
+    <span secondaire class="caption">
+      <span class="text-hint">
+        {{ inscription.montant_inscription_paye ?? 0 | number }} /
+        {{ inscription.montant_inscription | number }} FCFA
+      </span>
+      &bull; <span [ngClass]="paiementClass(inscription)">{{ paiementLabel(inscription) }}</span>
+    </span>
+    <span badge class="px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="statutClass(inscription)">
+      {{ statutLabel(inscription) }}
+    </span>
+
+    <!-- Fiche de renseignement (frais + échéancier) -->
+    <button actions mat-icon-button type="button" color="primary"
+      (click)="telechargerFiche(inscription)" [disabled]="downloadingId === inscription.id"
+      matTooltip="Télécharger la fiche de renseignement (PDF)">
+      <mat-spinner *ngIf="downloadingId === inscription.id" diameter="20"></mat-spinner>
+      <mat-icon *ngIf="downloadingId !== inscription.id" svgIcon="mat:description"></mat-icon>
+    </button>
+    <button actions mat-icon-button type="button"
+      [matMenuTriggerFor]="actionsMenu" [matMenuTriggerData]="{ inscription: inscription }">
+      <mat-icon svgIcon="mat:more_vert"></mat-icon>
+    </button>
+  </vex-liste-ligne>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:assignment" class="icon-lg"></mat-icon>
+    </div>
+
+    <ng-container *ngIf="filtreActif; else aucuneInscription">
+      <h3 class="title m-0">Aucun résultat</h3>
+      <p class="m-0 caption text-hint text-center">
+        Aucune inscription ne correspond aux critères sélectionnés.
+      </p>
+      <button mat-stroked-button type="button" (click)="reinitialiserFiltres()">
+        Réinitialiser les filtres
+      </button>
+    </ng-container>
+
+    <ng-template #aucuneInscription>
+      <h3 class="title m-0">Aucune inscription</h3>
+      <p class="m-0 caption text-hint text-center">
+        Aucune inscription pour l'année scolaire en cours.
+      </p>
+      <button *ngIf="peutInscrire" color="primary" mat-raised-button type="button" (click)="nouvelleInscription()">
+        <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Réinscrire un élève
+      </button>
+    </ng-template>
+  </div>
+</vex-liste-page>
+
+<!-- Menu contextuel -->
+<mat-menu #actionsMenu="matMenu" xPosition="before" yPosition="below">
+  <ng-template let-inscription="inscription" matMenuContent>
+    <button mat-menu-item (click)="voirEleve(inscription)">
+      <mat-icon svgIcon="mat:person" class="mr-2"></mat-icon>
+      <span>Voir l'élève</span>
+    </button>
+    <button mat-menu-item (click)="telechargerFiche(inscription)"
+      [disabled]="downloadingId === inscription.id">
+      <mat-icon svgIcon="mat:description" class="mr-2"></mat-icon>
+      <span>{{ downloadingId === inscription.id ? 'Génération...' : 'Télécharger la fiche' }}</span>
+    </button>
+    <!-- Le backend refuse d'annuler une inscription deja encaissee. -->
+    <button mat-menu-item (click)="annuler(inscription)"
+      [disabled]="estAnnulee(inscription) || estEncaissee(inscription)"
+      [matTooltip]="estEncaissee(inscription) ? 'Un montant a déjà été encaissé' : ''"
+      matTooltipPosition="left">
+      <mat-icon svgIcon="mat:cancel" class="mr-2"></mat-icon>
+      <span>Annuler l'inscription</span>
+    </button>
+    <button mat-menu-item (click)="supprimer(inscription)" class="text-red-600"
+      [disabled]="!peutSupprimer(inscription)"
+      [matTooltip]="raisonBlocageSuppression(inscription)"
+      matTooltipPosition="left">
+      <mat-icon svgIcon="mat:delete" class="mr-2"></mat-icon>
+      <span>Supprimer</span>
+    </button>
+  </ng-template>
+</mat-menu>

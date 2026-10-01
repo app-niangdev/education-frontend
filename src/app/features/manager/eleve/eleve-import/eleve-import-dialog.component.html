@@ -1,0 +1,297 @@
+<h2 class="flex items-center gap-2" mat-dialog-title>
+  <mat-icon svgIcon="mat:archive"></mat-icon>
+  <span>Importer des élèves</span>
+</h2>
+
+<mat-dialog-content class="!max-h-[70vh]">
+
+  <!-- ÉTAPE 1 — Dépôt du fichier -->
+  <ng-container *ngIf="etape() === 'depot'">
+    <p class="m-0 body-2 mb-4">
+      Reprise de données : importez en une fois les élèves déjà scolarisés,
+      depuis un fichier Excel ou CSV.
+    </p>
+
+    <div
+      (click)="fileInput.click()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave()"
+      (drop)="onDrop($event)"
+      [class.border-primary-600]="survol()"
+      class="flex flex-col items-center justify-center gap-3 px-6 py-10 rounded border-2 border-dashed cursor-pointer transition-colors duration-150 hover:border-primary-600 hover:bg-primary-600/5">
+      <div
+        class="w-14 h-14 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+        <mat-icon class="icon-lg" svgIcon="mat:archive"></mat-icon>
+      </div>
+
+      <p class="m-0 body-1 font-medium">Déposez le fichier ici</p>
+      <p class="m-0 caption text-hint">ou cliquez pour le sélectionner</p>
+      <p class="m-0 caption text-hint">Formats acceptés : .xlsx, .xls, .csv</p>
+    </div>
+
+    <input
+      #fileInput
+      (change)="onFichierChoisi($event)"
+      accept=".xlsx,.xls,.csv"
+      class="hidden"
+      type="file" />
+
+    <div
+      class="flex items-start gap-3 px-4 py-3 rounded bg-primary-600/5 border border-primary-600/20 mt-4">
+      <mat-icon
+        class="icon-sm text-primary-600 flex-none mt-0.5"
+        svgIcon="mat:info"></mat-icon>
+      <div>
+        <p class="m-0 caption text-hint mb-2">
+          La première ligne du fichier doit porter les noms des colonnes. Les
+          intitulés courants sont reconnus automatiquement
+          (« Nom », « Prénom », « Date de naissance », « Sexe »…) ; les colonnes
+          inconnues sont ignorées.
+        </p>
+        <p class="m-0 caption text-hint mb-2">
+          <strong>Fratrie :</strong> renseignez le <strong>NIN du tuteur</strong>
+          pour que les frères et sœurs partagent une même fiche tuteur — et donc
+          un seul accès famille. Sans NIN, chaque ligne crée son propre tuteur.
+        </p>
+        <button
+          (click)="telechargerModele()"
+          color="primary"
+          mat-stroked-button
+          type="button">
+          <mat-icon class="ltr:mr-2 rtl:ml-2 icon-sm" svgIcon="mat:download"></mat-icon>
+          Télécharger le modèle
+        </button>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ÉTAPE 2 — Aperçu avant envoi -->
+  <ng-container *ngIf="etape() === 'apercu'">
+    <div class="flex items-center gap-2 mb-4">
+      <mat-icon class="icon-sm text-hint" svgIcon="mat:description"></mat-icon>
+      <span class="body-2 font-medium">{{ nomFichier() }}</span>
+    </div>
+
+    <!-- Compteurs -->
+    <div class="flex gap-4 mb-4">
+      <div class="flex-1 rounded border px-4 py-3">
+        <p class="m-0 display-1 font-bold text-green-600">{{ lignes().length }}</p>
+        <p class="m-0 caption text-hint">prête(s) à importer</p>
+      </div>
+      <div class="flex-1 rounded border px-4 py-3" [class.border-red-300]="erreurs().length > 0">
+        <p class="m-0 display-1 font-bold" [class.text-red-600]="erreurs().length > 0">
+          {{ erreurs().length }}
+        </p>
+        <p class="m-0 caption text-hint">ligne(s) à corriger</p>
+      </div>
+    </div>
+
+    <!-- Colonnes non reconnues : un avertissement, pas une erreur -->
+    <div
+      *ngIf="colonnesIgnorees().length > 0"
+      class="flex items-start gap-3 px-4 py-3 rounded bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 mb-4">
+      <mat-icon
+        class="icon-sm text-amber-600 dark:text-amber-300 flex-none mt-0.5"
+        svgIcon="mat:warning"></mat-icon>
+      <p class="m-0 caption text-amber-800 dark:text-amber-200">
+        <strong>Colonnes ignorées :</strong>
+        {{ colonnesIgnorees().join(', ') }}.
+        <br />
+        Ces colonnes ne correspondent à aucun champ de la fiche élève : leur
+        contenu ne sera pas importé.
+      </p>
+    </div>
+
+    <!-- Lignes en erreur -->
+    <ng-container *ngIf="erreurs().length > 0">
+      <p class="m-0 body-2 font-medium mb-2">Lignes qui ne seront pas importées</p>
+
+      <div class="rounded border divide-y mb-4 max-h-64 overflow-y-auto">
+        <div *ngFor="let erreur of erreurs().slice(0, LIMITE_AFFICHAGE)" class="px-4 py-3">
+          <p class="m-0 caption font-medium">
+            <span class="text-red-600" *ngIf="erreur.ligne > 0">
+              Ligne {{ erreur.ligne }}
+            </span>
+            <span class="text-red-600" *ngIf="erreur.ligne === 0">
+              {{ erreur.intitule }}
+            </span>
+            <span class="text-hint" *ngIf="erreur.ligne > 0"> — {{ erreur.intitule }}</span>
+          </p>
+          <ul class="m-0 mt-1 pl-4 list-disc">
+            <li *ngFor="let message of erreur.messages" class="caption text-hint">
+              {{ message }}
+            </li>
+          </ul>
+        </div>
+
+        <p
+          *ngIf="erreurs().length > LIMITE_AFFICHAGE"
+          class="m-0 px-4 py-3 caption text-hint">
+          … et {{ erreurs().length - LIMITE_AFFICHAGE }} autre(s) ligne(s) en erreur.
+        </p>
+      </div>
+
+      <p class="m-0 caption text-hint mb-4">
+        Corrigez ces lignes dans le fichier puis redéposez-le, ou lancez
+        l'import : seules les lignes valides seront enregistrées.
+      </p>
+    </ng-container>
+
+    <!-- Aperçu des lignes valides -->
+    <ng-container *ngIf="lignes().length > 0">
+      <p class="m-0 body-2 font-medium mb-2">Aperçu</p>
+
+      <div class="rounded border divide-y max-h-64 overflow-y-auto">
+        <div
+          *ngFor="let ligne of lignes().slice(0, LIMITE_AFFICHAGE)"
+          class="px-4 py-2 flex items-center justify-between gap-4">
+          <div class="min-w-0">
+            <p class="m-0 caption font-medium truncate">
+              {{ ligne.eleve.prenom }} {{ ligne.eleve.nom }}
+            </p>
+            <p class="m-0 caption text-hint truncate">
+              {{ ligne.eleve.date_naissance }}
+              <span *ngIf="ligne.eleve.matricule"> &bull; {{ ligne.eleve.matricule }}</span>
+              <span *ngIf="!ligne.eleve.matricule"> &bull; matricule généré</span>
+            </p>
+          </div>
+          <span class="caption text-hint flex-none">L{{ ligne.ligne }}</span>
+        </div>
+
+        <p
+          *ngIf="lignes().length > LIMITE_AFFICHAGE"
+          class="m-0 px-4 py-3 caption text-hint">
+          … et {{ lignes().length - LIMITE_AFFICHAGE }} autre(s) élève(s).
+        </p>
+      </div>
+    </ng-container>
+  </ng-container>
+
+  <!-- ÉTAPE 3 — Envoi en cours -->
+  <ng-container *ngIf="etape() === 'envoi'">
+    <div class="flex flex-col items-center gap-4 py-10">
+      <p class="m-0 body-1 font-medium">Import en cours…</p>
+      <mat-progress-bar
+        [value]="progression"
+        class="w-full"
+        mode="determinate"></mat-progress-bar>
+      <p class="m-0 caption text-hint">
+        {{ envoyees() }} / {{ lignes().length }} ligne(s) traitée(s)
+      </p>
+      <p class="m-0 caption text-hint text-center">
+        Ne fermez pas cette fenêtre tant que l'import n'est pas terminé.
+      </p>
+    </div>
+  </ng-container>
+
+  <!-- ÉTAPE 4 — Rapport -->
+  <ng-container *ngIf="etape() === 'rapport' && rapport() as bilan">
+    <div class="flex gap-4 mb-4">
+      <div class="flex-1 rounded border px-4 py-3">
+        <p class="m-0 display-1 font-bold text-green-600">{{ bilan.crees }}</p>
+        <p class="m-0 caption text-hint">créé(s)</p>
+      </div>
+      <div class="flex-1 rounded border px-4 py-3">
+        <p class="m-0 display-1 font-bold text-amber-600">{{ bilan.ignores }}</p>
+        <p class="m-0 caption text-hint">ignoré(s)</p>
+      </div>
+      <div class="flex-1 rounded border px-4 py-3">
+        <p class="m-0 display-1 font-bold" [class.text-red-600]="bilan.echecs > 0">
+          {{ bilan.echecs }}
+        </p>
+        <p class="m-0 caption text-hint">en échec</p>
+      </div>
+    </div>
+
+    <!-- Ignorés : doublons de matricule -->
+    <ng-container *ngIf="bilan.details.ignores.length > 0">
+      <p class="m-0 body-2 font-medium mb-2">Élèves déjà présents</p>
+      <p class="m-0 caption text-hint mb-2">
+        Ces lignes portent un matricule déjà enregistré. Les fiches existantes
+        n'ont pas été modifiées.
+      </p>
+
+      <div class="rounded border divide-y mb-4 max-h-48 overflow-y-auto">
+        <div
+          *ngFor="let ligne of bilan.details.ignores.slice(0, LIMITE_AFFICHAGE)"
+          class="px-4 py-2">
+          <p class="m-0 caption">
+            <span class="text-hint">Ligne {{ ligne.ligne }}</span>
+            &bull; {{ ligne.nom }}
+            <span class="text-hint" *ngIf="ligne.matricule"> ({{ ligne.matricule }})</span>
+          </p>
+        </div>
+
+        <p
+          *ngIf="bilan.details.ignores.length > LIMITE_AFFICHAGE"
+          class="m-0 px-4 py-3 caption text-hint">
+          … et {{ bilan.details.ignores.length - LIMITE_AFFICHAGE }} autre(s).
+        </p>
+      </div>
+    </ng-container>
+
+    <!-- Échecs -->
+    <ng-container *ngIf="bilan.details.echecs.length > 0">
+      <p class="m-0 body-2 font-medium mb-2">Lignes en échec</p>
+
+      <div class="rounded border divide-y max-h-48 overflow-y-auto">
+        <div
+          *ngFor="let ligne of bilan.details.echecs.slice(0, LIMITE_AFFICHAGE)"
+          class="px-4 py-2">
+          <p class="m-0 caption font-medium">
+            <span class="text-red-600">Ligne {{ ligne.ligne }}</span>
+            &bull; {{ ligne.nom }}
+          </p>
+          <p class="m-0 caption text-hint">{{ ligne.motif }}</p>
+        </div>
+
+        <p
+          *ngIf="bilan.details.echecs.length > LIMITE_AFFICHAGE"
+          class="m-0 px-4 py-3 caption text-hint">
+          … et {{ bilan.details.echecs.length - LIMITE_AFFICHAGE }} autre(s).
+        </p>
+      </div>
+    </ng-container>
+
+    <div
+      *ngIf="bilan.echecs === 0 && bilan.ignores === 0"
+      class="flex items-start gap-3 px-4 py-3 rounded bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700">
+      <mat-icon
+        class="icon-sm text-green-600 dark:text-green-300 flex-none mt-0.5"
+        svgIcon="mat:check_circle"></mat-icon>
+      <p class="m-0 caption text-green-800 dark:text-green-200">
+        Toutes les lignes du fichier ont été importées.
+      </p>
+    </div>
+  </ng-container>
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <ng-container *ngIf="etape() === 'depot'">
+    <button mat-button mat-dialog-close type="button">Annuler</button>
+  </ng-container>
+
+  <ng-container *ngIf="etape() === 'apercu'">
+    <button (click)="recommencer()" mat-button type="button">
+      Changer de fichier
+    </button>
+    <button
+      (click)="lancerImport()"
+      [disabled]="lignes().length === 0"
+      color="primary"
+      mat-raised-button
+      type="button">
+      Importer {{ lignes().length }} élève(s)
+    </button>
+  </ng-container>
+
+  <ng-container *ngIf="etape() === 'rapport'">
+    <button (click)="recommencer()" mat-button type="button">
+      Importer un autre fichier
+    </button>
+    <button (click)="fermer()" color="primary" mat-raised-button type="button">
+      Terminer
+    </button>
+  </ng-container>
+</mat-dialog-actions>

@@ -1,0 +1,411 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- En-tête -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0">
+      <h2 class="display-1 font-bold m-0 flex items-center w-full">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:assessment"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">
+          Bilan financier
+          <span *ngIf="bilan()?.annee_scolaire" class="caption text-hint font-normal block">
+            Année scolaire {{ bilan()?.annee_scolaire?.nom }} · {{ bilan()?.periode?.libelle }}
+          </span>
+        </span>
+      </h2>
+    </div>
+  </div>
+
+  <!-- Chargement -->
+  <div *ngIf="loading" class="flex-auto flex items-center justify-center p-12">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <!-- Aucune donnée -->
+  <div *ngIf="!loading && !bilan()" class="flex-auto flex flex-col items-center justify-center gap-3 p-12">
+    <mat-icon svgIcon="mat:assessment" class="icon-lg text-hint"></mat-icon>
+    <p class="m-0 text-hint">Aucun bilan disponible.</p>
+  </div>
+
+  <div *ngIf="!loading && bilan() as b" class="container-fluid px-6 pb-8">
+
+    <!-- Filtre : une seule rangée, au-dessus des graphiques -->
+    <div class="mt-6 card px-5 py-4 flex flex-wrap items-center gap-4">
+      <mat-icon svgIcon="mat:date_range" class="text-hint flex-none"></mat-icon>
+
+      <mat-form-field appearance="outline" class="flex-none w-64" subscriptSizing="dynamic">
+        <mat-label>Période</mat-label>
+        <mat-select [(ngModel)]="moisSelectionne" (selectionChange)="onMoisChange()">
+          <mat-option value="">Toute l'année scolaire</mat-option>
+          <mat-option *ngFor="let m of b.mois_disponibles" [value]="valeurMois(m)">
+            {{ m.libelle }}
+            <span *ngIf="m.hors_calendrier" class="caption text-hint">(hors calendrier)</span>
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button *ngIf="moisSelectionne" mat-button color="primary" (click)="reinitialiser()">
+        <mat-icon svgIcon="mat:close" class="icon-sm"></mat-icon>
+        Toute l'année
+      </button>
+
+      <span class="body-2 text-hint ml-auto hidden md:inline">
+        Les flux suivent la période ; les créances restent cumulées sur l'année.
+      </span>
+    </div>
+
+    <!-- Résultat : le chiffre que l'écran porte -->
+    <div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+      <div class="card p-6 lg:col-span-1 flex flex-col justify-center" @scaleIn>
+        <p class="m-0 caption text-hint uppercase tracking-wide">Résultat de trésorerie</p>
+        <p class="m-0 mt-2 font-bold leading-none" style="font-size: 2.5rem"
+          [style.color]="b.resultat.excedent ? 'var(--viz-positif)' : 'var(--viz-negatif)'">
+          {{ formatSigne(b.resultat.benefice) }}
+        </p>
+        <p class="m-0 mt-1 body-2 text-hint">FCFA · {{ b.periode.libelle }}</p>
+
+        <div class="mt-4 flex items-center gap-2">
+          <mat-icon [svgIcon]="b.resultat.excedent ? 'mat:check_circle' : 'mat:error'"
+            class="icon-sm flex-none"
+            [style.color]="b.resultat.excedent ? 'var(--viz-positif)' : 'var(--viz-negatif)'"></mat-icon>
+          <span class="body-2 font-medium">
+            {{ b.resultat.excedent ? 'Excédent' : 'Déficit' }}
+          </span>
+          <span class="caption text-hint">· marge {{ b.resultat.marge }}%</span>
+        </div>
+      </div>
+
+      <div class="card p-5 flex items-center gap-4" @scaleIn>
+        <div class="w-12 h-12 rounded-full flex-none flex items-center justify-center"
+          style="background: rgb(22 163 74 / 0.12); color: var(--viz-encaisse)">
+          <mat-icon svgIcon="mat:receipt"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <p class="m-0 display-1 font-bold leading-none">
+            {{ formatMontant(b.resultat.encaisse) }}
+            <span class="body-2 text-hint font-normal">FCFA</span>
+          </p>
+          <p class="m-0 caption text-hint">Encaissé · {{ b.encaissements.nombre }} versement(s)</p>
+          <p class="m-0 mt-1 caption text-hint">
+            Inscriptions {{ formatMontant(b.encaissements.par_source.inscriptions.montant) }}
+            · Mensualités {{ formatMontant(b.encaissements.par_source.mensualites.montant) }}
+          </p>
+        </div>
+      </div>
+
+      <div class="card p-5 flex items-center gap-4" @scaleIn>
+        <div class="w-12 h-12 rounded-full flex-none flex items-center justify-center"
+          style="background: rgb(79 70 229 / 0.12); color: var(--viz-depense)">
+          <mat-icon svgIcon="mat:shopping_bag"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <p class="m-0 display-1 font-bold leading-none">
+            {{ formatMontant(b.resultat.depense) }}
+            <span class="body-2 text-hint font-normal">FCFA</span>
+          </p>
+          <p class="m-0 caption text-hint">Dépensé · {{ b.depenses.nombre }} dépense(s)</p>
+          <p class="m-0 mt-1 caption text-hint">
+            Soit {{ b.resultat.taux_charge }}% de ce qui est encaissé
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Évolution mensuelle : deux séries, axe unique -->
+    <div class="mt-6 card p-6">
+      <div class="flex flex-wrap items-start justify-between gap-4 mb-2">
+        <div>
+          <h3 class="title m-0 mb-1">Évolution mensuelle</h3>
+          <p class="caption text-hint m-0">
+            Encaissements et dépenses de chaque mois — toujours sur l'année entière
+          </p>
+        </div>
+
+        <!-- Légende : identité jamais portée par la couleur seule -->
+        <div class="flex items-center gap-4">
+          <span class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-sm flex-none" style="background: var(--viz-encaisse)"></span>
+            <span class="body-2">Encaissé</span>
+          </span>
+          <span class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-sm flex-none" style="background: var(--viz-depense)"></span>
+            <span class="body-2">Dépensé</span>
+          </span>
+        </div>
+      </div>
+
+      <ng-container *ngIf="evolutionRenseignee(); else aucunMouvement">
+        <p class="caption text-hint m-0 mb-4">
+          Échelle : 0 → {{ formatMontant(maximumEvolution()) }} FCFA
+        </p>
+
+        <div class="overflow-x-auto">
+          <div class="flex items-end gap-2 min-w-[640px]" style="height: 220px">
+            <div *ngFor="let c of colonnes()"
+              class="colonne-groupe flex-1 h-full flex flex-col justify-end items-center gap-2 px-1 pt-6 relative"
+              [class.mois-actif]="c.selectionne"
+              [matTooltip]="c.ligne.libelle + ' — Encaissé : ' + formatMontant(c.ligne.encaisse)
+                + ' FCFA · Dépensé : ' + formatMontant(c.ligne.depense)
+                + ' FCFA · Solde : ' + formatSigne(c.ligne.solde) + ' FCFA'"
+              matTooltipPosition="above" tabindex="0">
+
+              <!-- Le mois filtré porte son solde en label direct -->
+              <span *ngIf="c.selectionne" class="absolute top-0 caption font-bold whitespace-nowrap"
+                [style.color]="c.ligne.solde >= 0 ? 'var(--viz-positif)' : 'var(--viz-negatif)'">
+                {{ formatSigne(c.ligne.solde) }}
+              </span>
+
+              <!-- Les deux séries partagent la même échelle ; 2px de gap -->
+              <div class="w-full flex items-end justify-center gap-[2px]" style="height: 100%">
+                <div class="colonne" style="max-width: 24px; width: 44%; background: var(--viz-encaisse)"
+                  [class.colonne-active]="c.selectionne"
+                  [style.height.%]="c.hauteurEncaisse"></div>
+                <div class="colonne" style="max-width: 24px; width: 44%; background: var(--viz-depense)"
+                  [class.colonne-active]="c.selectionne"
+                  [style.height.%]="c.hauteurDepense"></div>
+              </div>
+
+              <span class="caption text-hint whitespace-nowrap">{{ c.ligne.court }}</span>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-template #aucunMouvement>
+        <p class="caption text-hint m-0">Aucun mouvement enregistré sur cette année scolaire.</p>
+      </ng-template>
+    </div>
+
+    <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Dépenses par poste : magnitude, rampe d'une seule teinte -->
+      <div class="card p-6">
+        <h3 class="title m-0 mb-1">Dépenses par poste</h3>
+        <p class="caption text-hint m-0 mb-4">
+          {{ formatMontant(b.depenses.total) }} FCFA · {{ b.periode.libelle }}
+        </p>
+
+        <ng-container *ngIf="postes().length; else aucuneDepense">
+          <div class="flex flex-col gap-3">
+            <div *ngFor="let p of postes()">
+              <div class="flex items-center justify-between mb-1 gap-3">
+                <span class="body-2 font-medium truncate">{{ p.libelle }}</span>
+                <span class="caption text-hint whitespace-nowrap">
+                  {{ formatMontant(p.montant) }} · {{ p.pct }}%
+                </span>
+              </div>
+              <div class="h-3 rounded-full overflow-hidden" style="background: var(--viz-track)">
+                <div class="barre-poste h-full" [style.width.%]="p.largeur" [style.background]="p.couleur"
+                  [matTooltip]="p.libelle + ' : ' + formatMontant(p.montant) + ' FCFA · ' + p.nombre + ' dépense(s)'">
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-template #aucuneDepense>
+          <p class="caption text-hint m-0">Aucune dépense sur cette période.</p>
+        </ng-template>
+      </div>
+
+      <!-- Encaissements par mode de paiement -->
+      <div class="card p-6">
+        <h3 class="title m-0 mb-1">Encaissements par mode</h3>
+        <p class="caption text-hint m-0 mb-4">
+          {{ formatMontant(b.encaissements.total) }} FCFA · {{ b.periode.libelle }}
+        </p>
+
+        <ng-container *ngIf="modesRenseignes().length; else aucunMode">
+          <div class="flex flex-col gap-3">
+            <div *ngFor="let m of modesRenseignes()">
+              <div class="flex items-center justify-between mb-1 gap-3">
+                <span class="body-2 font-medium truncate">{{ m.libelle }}</span>
+                <span class="caption text-hint whitespace-nowrap">
+                  {{ formatMontant(m.montant) }} · {{ partDuMode(m.montant) }}%
+                </span>
+              </div>
+              <div class="h-3 rounded-full overflow-hidden" style="background: var(--viz-track)">
+                <div class="barre-poste h-full" [style.width.%]="partDuMode(m.montant)"
+                  style="background: var(--viz-encaisse)"></div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-template #aucunMode>
+          <p class="caption text-hint m-0">Aucun encaissement sur cette période.</p>
+        </ng-template>
+      </div>
+
+      <!-- Masse salariale : décaissé vs engagement contractuel -->
+      <div class="card p-6">
+        <h3 class="title m-0 mb-1">Masse salariale</h3>
+        <p class="caption text-hint m-0 mb-4">
+          {{ b.masse_salariale.contrats_actifs }} contrat(s) en cours
+        </p>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <p class="m-0 caption text-hint">Décaissé (dépenses)</p>
+            <p class="m-0 title font-bold">{{ formatMontant(b.masse_salariale.decaisse) }}</p>
+            <p class="m-0 caption text-hint">
+              {{ b.masse_salariale.part_des_depenses }}% des dépenses
+            </p>
+          </div>
+          <div>
+            <p class="m-0 caption text-hint">Engagement contractuel</p>
+            <p class="m-0 title font-bold">{{ formatMontant(b.masse_salariale.engagement_mensuel) }}</p>
+            <p class="m-0 caption text-hint">FCFA / mois</p>
+          </div>
+        </div>
+
+        <!-- L'écart n'a de sens qu'en vue mensuelle : deux échelles sinon -->
+        <div *ngIf="ecartSalaireComparable(); else ecartNonComparable"
+          class="rounded-lg px-4 py-3 flex items-start gap-3"
+          [style.background]="alerteSalaire() ? 'rgb(180 83 9 / 0.08)' : 'rgb(22 163 74 / 0.08)'">
+          <mat-icon [svgIcon]="alerteSalaire() ? 'mat:warning' : 'mat:check_circle'" class="icon-sm flex-none mt-0.5"
+            [style.color]="alerteSalaire() ? 'var(--viz-alerte)' : 'var(--viz-positif)'"></mat-icon>
+          <div>
+            <p class="m-0 body-2 font-medium">
+              Écart : {{ formatSigne(b.masse_salariale.ecart) }} FCFA
+            </p>
+            <p class="m-0 caption text-hint">
+              <ng-container *ngIf="alerteSalaire()">
+                Les salaires versés ce mois restent en deçà des contrats.
+              </ng-container>
+              <ng-container *ngIf="!alerteSalaire()">
+                Les salaires versés couvrent l'engagement du mois.
+              </ng-container>
+            </p>
+          </div>
+        </div>
+
+        <ng-template #ecartNonComparable>
+          <p class="m-0 caption text-hint">
+            L'engagement contractuel est un montant mensuel : sélectionnez un mois
+            pour le comparer au décaissé.
+          </p>
+        </ng-template>
+
+        <p *ngIf="b.masse_salariale.contrats_horaires > 0" class="m-0 mt-3 caption text-hint">
+          {{ b.masse_salariale.contrats_horaires }} contrat(s) payé(s) à l'heure : leur
+          montant dépend des heures effectuées et n'entre pas dans l'engagement.
+        </p>
+      </div>
+
+      <!-- Créances : cumulées sur l'année, jamais bornées au mois -->
+      <div class="card p-6">
+        <div class="flex items-start justify-between mb-4 gap-4">
+          <div>
+            <h3 class="title m-0 mb-1">Restant à payer par les élèves</h3>
+            <p class="caption text-hint m-0">Cumul de l'année · hors filtre mensuel</p>
+          </div>
+          <svg viewBox="0 0 42 42" class="w-20 h-20 flex-none" role="img"
+            [attr.aria-label]="'Taux de recouvrement : ' + b.creances.taux_recouvrement + '%'">
+            <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="var(--viz-track)" stroke-width="5"></circle>
+            <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="var(--viz-encaisse)" stroke-width="5"
+              [attr.stroke-dasharray]="gaugeDash" stroke-dashoffset="25" stroke-linecap="round"></circle>
+            <text x="21" y="23" text-anchor="middle" class="gauge-value">
+              {{ b.creances.taux_recouvrement }}%
+            </text>
+          </svg>
+        </div>
+
+        <p class="m-0 mb-1 caption text-hint">Reste à recouvrer</p>
+        <p class="m-0 mb-4 display-1 font-bold" style="color: var(--viz-alerte)">
+          {{ formatMontant(b.creances.total.reste) }}
+          <span class="body-2 text-hint font-normal">FCFA</span>
+        </p>
+
+        <div class="flex flex-col gap-3">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="body-2 font-medium">Inscriptions</span>
+              <span class="caption text-hint">
+                reste {{ formatMontant(b.creances.inscriptions.reste) }} /
+                {{ formatMontant(b.creances.inscriptions.du) }}
+              </span>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="body-2 font-medium">Mensualités</span>
+              <span class="caption text-hint">
+                reste {{ formatMontant(b.creances.mensualites.reste) }} /
+                {{ formatMontant(b.creances.mensualites.du) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-4 border-t flex items-center gap-2">
+          <mat-icon svgIcon="mat:contacts" class="icon-sm text-hint flex-none"></mat-icon>
+          <span class="body-2">
+            <span class="font-bold">{{ b.creances.eleves_debiteurs.total }}</span>
+            élève(s) débiteur(s)
+          </span>
+          <span class="caption text-hint ml-auto text-right">
+            {{ b.creances.eleves_debiteurs.inscriptions }} sur inscription ·
+            {{ b.creances.eleves_debiteurs.mensualites }} sur mensualité
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vue tableau : les chiffres accessibles sans lire un graphique -->
+    <div class="mt-6 card p-6">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h3 class="title m-0 mb-1">Détail mensuel</h3>
+          <p class="caption text-hint m-0">Les mêmes données, sous forme de tableau</p>
+        </div>
+        <button mat-button color="primary" (click)="tableauVisible = !tableauVisible">
+          <mat-icon [svgIcon]="tableauVisible ? 'mat:arrow_drop_down' : 'mat:chevron_right'" class="icon-sm"></mat-icon>
+          {{ tableauVisible ? 'Masquer' : 'Afficher' }}
+        </button>
+      </div>
+
+      <div *ngIf="tableauVisible" class="mt-4 overflow-x-auto">
+        <table class="w-full text-left" style="border-collapse: collapse">
+          <thead>
+            <tr class="caption text-hint">
+              <th class="py-2 pr-4 font-medium">Mois</th>
+              <th class="py-2 pr-4 font-medium text-right">Encaissé</th>
+              <th class="py-2 pr-4 font-medium text-right">Dépensé</th>
+              <th class="py-2 font-medium text-right">Solde</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let l of b.evolution_mensuelle" class="border-t">
+              <td class="py-2 pr-4 body-2">
+                {{ l.libelle }}
+                <span *ngIf="l.hors_calendrier" class="caption text-hint">(hors calendrier)</span>
+              </td>
+              <td class="py-2 pr-4 body-2 text-right">{{ formatMontant(l.encaisse) }}</td>
+              <td class="py-2 pr-4 body-2 text-right">{{ formatMontant(l.depense) }}</td>
+              <td class="py-2 body-2 text-right font-medium"
+                [style.color]="l.solde >= 0 ? 'var(--viz-positif)' : 'var(--viz-negatif)'">
+                {{ formatSigne(l.solde) }}
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="border-t-2 font-bold">
+              <td class="py-2 pr-4 body-2">Total année</td>
+              <td class="py-2 pr-4 body-2 text-right">{{ formatMontant(totauxEvolution().encaisse) }}</td>
+              <td class="py-2 pr-4 body-2 text-right">{{ formatMontant(totauxEvolution().depense) }}</td>
+              <td class="py-2 body-2 text-right"
+                [style.color]="totauxEvolution().solde >= 0 ? 'var(--viz-positif)' : 'var(--viz-negatif)'">
+                {{ formatSigne(totauxEvolution().solde) }}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>

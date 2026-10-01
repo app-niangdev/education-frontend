@@ -1,0 +1,368 @@
+<div class="w-full h-full flex flex-col">
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0">
+      <h2 class="display-1 font-bold m-0 flex items-center w-full ">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:info"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">Informations sur l'établissement</span>
+      </h2>
+    </div>
+  </div>
+
+  <!-- Chargement : uniquement pendant la requête, sinon le loader tournait
+       indéfiniment quand l'API ne renvoyait aucun établissement. -->
+  <div *ngIf="loading()" class="flex-auto flex items-center justify-center px-6">
+    <div class="card w-full flex flex-col items-center justify-center gap-4 p-12">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p class="m-0 text-hint">Chargement en cours...</p>
+    </div>
+  </div>
+
+  <!-- Aucune donnée : soit rien n'est encore enregistré (on propose le
+       formulaire de création), soit le chargement a échoué (on propose de
+       réessayer). Dans les deux cas le loader s'arrête. -->
+  <div *ngIf="!loading() && !etablissement()" class="flex-auto flex items-center justify-center px-6">
+    <div class="card w-full flex flex-col items-center justify-center gap-4 p-12 text-center">
+      <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+        <mat-icon [svgIcon]="isEmpty() ? 'mat:school' : 'mat:error_outline'"></mat-icon>
+      </div>
+
+      <ng-container *ngIf="isEmpty(); else loadFailed">
+        <h3 class="title m-0">Aucun établissement enregistré</h3>
+        <p class="m-0 body-1 text-hint">
+          Renseignez les informations de votre établissement pour commencer.
+        </p>
+        <button color="primary" mat-raised-button type="button" (click)="createEtablissement()">
+          <mat-icon svgIcon="mat:add"></mat-icon>
+          Enregistrer l'établissement
+        </button>
+      </ng-container>
+
+      <ng-template #loadFailed>
+        <p class="m-0 body-1">{{ loadError() }}</p>
+        <button color="primary" mat-raised-button type="button" (click)="reload()">
+          <mat-icon svgIcon="mat:refresh"></mat-icon>
+          Réessayer
+        </button>
+      </ng-template>
+    </div>
+  </div>
+
+  <div class="container-fluid px-6" *ngIf="etablissement() as etablissement">
+    <div class="mt-6 flex flex-col md:flex-row md:items-start">
+      <div class="flex-auto">
+
+        <!-- Logo -->
+        <div class="card mb-6">
+          <div class="px-6 py-4 border-b">
+            <h2 class="title m-0">Logo de l'établissement</h2>
+          </div>
+          <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-6">
+            <div
+              class="w-24 h-24 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center overflow-hidden">
+              <img *ngIf="etablissement.logo; else noLogo" [src]="etablissement.logo"
+                [alt]="'Logo ' + etablissement.nom" class="w-full h-full object-contain" />
+              <ng-template #noLogo>
+                <mat-icon svgIcon="mat:school"></mat-icon>
+              </ng-template>
+            </div>
+
+            <div class="flex-auto">
+              <p class="m-0 body-1">Formats acceptés : jpeg, png, jpg, svg, webp</p>
+              <p class="m-0 caption text-hint">Taille maximale : 2 Mo</p>
+            </div>
+
+            <input #logoInput hidden type="file" [accept]="logoAccept"
+              (change)="onLogoSelected($event, etablissement)" />
+
+            <button color="primary" mat-raised-button type="button" [disabled]="isUploadingLogo"
+              (click)="logoInput.click()" matTooltip="Mettre à jour le logo de l'établissement">
+              <mat-spinner *ngIf="isUploadingLogo" diameter="18" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+              <mat-icon *ngIf="!isUploadingLogo" svgIcon="mat:file_copy"></mat-icon>
+              {{ isUploadingLogo ? 'Envoi en cours...' : 'Modifier le logo' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Identité -->
+        <div class="card">
+          <div class="px-6 py-4 border-b">
+            <h2 class="title m-0">Identité de l'établissement</h2>
+          </div>
+          <div class="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="py-3 flex items-center">
+              <div
+                class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center">
+                <mat-icon class="icon-sm" svgIcon="mat:school"></mat-icon>
+              </div>
+              <div>
+                <p class="m-0 body-1">{{ etablissement.nom }}</p>
+                <p class="m-0 caption text-hint">Nom complet</p>
+              </div>
+            </div>
+
+            <div class="py-3 flex items-center">
+              <div
+                class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center">
+                <mat-icon class="icon-sm" svgIcon="mat:badge"></mat-icon>
+              </div>
+              <div>
+                <p class="m-0 body-1">{{ etablissement.nom_court }}</p>
+                <p class="m-0 caption text-hint">Nom court</p>
+              </div>
+            </div>
+
+            <div class="py-3 flex items-center">
+              <div
+                class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center">
+                <mat-icon class="icon-sm" svgIcon="mat:info"></mat-icon>
+              </div>
+              <div>
+                <p class="m-0 body-1">{{ etablissement.slogan }}</p>
+                <p class="m-0 caption text-hint">Slogan</p>
+              </div>
+            </div>
+
+            <div class="py-3 flex items-center">
+              <div
+                class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center">
+                <mat-icon class="icon-sm" svgIcon="mat:location_on"></mat-icon>
+              </div>
+              <div>
+                <p class="m-0 body-1">{{ etablissement.adresse }}</p>
+                <p class="m-0 caption text-hint">Adresse</p>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="px-6 py-4 border-b">
+            <h2 class="title m-0">Autorités de tutelle</h2>
+          </div>
+          <div class="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            <div class="py-3 flex items-center">
+              <div
+                class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center">
+                <mat-icon class="icon-sm" svgIcon="mat:assignment"></mat-icon>
+              </div>
+              <div>
+                <p class="m-0 body-1">{{ etablissement.inspection_academique }}</p>
+                <p class="m-0 caption text-hint">Inspection académique</p>
+              </div>
+            </div>
+
+            <div class="py-3 flex items-center">
+              <div
+                class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center">
+                <mat-icon class="icon-sm" svgIcon="mat:assignment"></mat-icon>
+              </div>
+              <div>
+                <p class="m-0 body-1">{{ etablissement.inspection_education_formation }}</p>
+                <p class="m-0 caption text-hint">Inspection de l'éducation et de la formation</p>
+              </div>
+            </div>
+          </div>
+          <div class="px-6 py-4 flex justify-end">
+            <button color="primary" mat-raised-button (click)="editIdentite(etablissement)"
+              matTooltip="Mettre à jour identité de l'établissement" type="button">
+              <mat-icon svgIcon="mat:edit"></mat-icon>
+              Modifier
+            </button>
+          </div>
+        </div>
+
+        <!-- Contacts -->
+        <div class="card mt-6">
+          <div class="px-6 py-4 border-b">
+            <h2 class="title m-0">Contacts</h2>
+          </div>
+          <div class="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="py-3 flex items-center">
+              <div
+                class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center">
+                <mat-icon class="icon-sm" svgIcon="mat:phone"></mat-icon>
+              </div>
+              <div>
+                <p class="m-0 body-1">{{ etablissement.telephone_principal }}</p>
+                <p class="m-0 caption text-hint">Téléphone principal</p>
+              </div>
+            </div>
+
+            <div class="py-3 flex items-center">
+              <div
+                class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center">
+                <mat-icon class="icon-sm" svgIcon="mat:phone"></mat-icon>
+              </div>
+              <div>
+                <p class="m-0 body-1">{{ etablissement.telephone_secondaire }}</p>
+                <p class="m-0 caption text-hint">Téléphone secondaire</p>
+              </div>
+            </div>
+
+            <div class="py-3 flex items-center">
+              <div
+                class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center">
+                <mat-icon class="icon-sm" svgIcon="mat:mail"></mat-icon>
+              </div>
+              <div>
+                <p class="m-0 body-1">{{ etablissement.email }}</p>
+                <p class="m-0 caption text-hint">Email</p>
+              </div>
+            </div>
+
+            <div class="py-3 flex items-center">
+              <div
+                class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center">
+                <mat-icon class="icon-sm" svgIcon="mat:web"></mat-icon>
+              </div>
+              <div>
+                <a class="m-0 body-1 text-primary-600" [href]="etablissement.site_web" target="_blank">
+                  {{ etablissement.site_web }}
+                </a>
+                <p class="m-0 caption text-hint">Site web</p>
+              </div>
+            </div>
+
+            <div class="py-3 flex items-center">
+              <div
+                class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center">
+                <mat-icon class="icon-sm" svgIcon="mat:contacts"></mat-icon>
+              </div>
+              <div>
+                <a class="m-0 body-1 text-primary-600" [href]="etablissement.lien_facebook" target="_blank">
+                  {{ etablissement.lien_facebook }}
+                </a>
+                <p class="m-0 caption text-hint">Facebook</p>
+              </div>
+            </div>
+
+            <div class="py-3 flex items-center">
+              <div
+                class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center">
+                <mat-icon class="icon-sm" svgIcon="mat:contacts"></mat-icon>
+              </div>
+              <div>
+                <a class="m-0 body-1 text-primary-600" [href]="etablissement.lien_instagram" target="_blank">
+                  {{ etablissement.lien_instagram }}
+                </a>
+                <p class="m-0 caption text-hint">Instagram</p>
+              </div>
+            </div>
+          </div>
+          <div class="px-6 py-4 flex justify-end">
+            <button color="primary" mat-raised-button (click)="editContacts(etablissement)"
+              matTooltip="Mettre à jour contacts" type="button">
+              <mat-icon svgIcon="mat:edit"></mat-icon>
+              Modifier
+            </button>
+          </div>
+        </div>
+
+        <!-- Paramétrage de l'application. Ouvert au manager, sauf le statut et
+             le mode maintenance : réservés à l'admin (cf. plus bas). -->
+        <div class="card mt-6">
+          <div class="px-6 py-4 border-b">
+            <h2 class="title m-0">Paramétrage de l'application</h2>
+          </div>
+
+          <!-- Chargement du paramétrage (requête distincte de l'établissement) -->
+          <div *ngIf="!setting()" class="flex items-center justify-center gap-3 p-12">
+            <mat-spinner diameter="32"></mat-spinner>
+            <p class="m-0 text-hint">Chargement du paramétrage...</p>
+          </div>
+
+          <ng-container *ngIf="setting() as parametrage">
+            <div class="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              <div class="py-3 flex items-center">
+                <div
+                  class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center flex-none">
+                  <mat-icon class="icon-sm" svgIcon="mat:phone"></mat-icon>
+                </div>
+                <div>
+                  <p class="m-0 body-1">{{ parametrage.telephone_transaction }}</p>
+                  <p class="m-0 caption text-hint">Numéro de transaction</p>
+                </div>
+              </div>
+
+              <div class="py-3 flex items-center">
+                <div
+                  class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center flex-none">
+                  <mat-icon class="icon-sm" svgIcon="mat:settings"></mat-icon>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="inline-block w-5 h-5 rounded-full border border-gray-200 flex-none"
+                    [style.background-color]="parametrage.code_couleur"></span>
+                  <div>
+                    <p class="m-0 body-1">{{ parametrage.code_couleur }}</p>
+                    <p class="m-0 caption text-hint">Code couleur</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="py-3 flex items-center">
+                <div
+                  class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center flex-none">
+                  <mat-icon class="icon-sm" svgIcon="mat:grade"></mat-icon>
+                </div>
+                <div>
+                  <p class="m-0 body-1">{{ parametrage.bareme_defaut }}</p>
+                  <p class="m-0 caption text-hint">Barème par défaut des évaluations</p>
+                </div>
+              </div>
+
+              <!-- Disponibilité de la plateforme : pilotée par l'admin seul -->
+              <ng-container *ngIf="isAdmin">
+                <div class="py-3 flex items-center">
+                  <div
+                    class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center flex-none">
+                    <mat-icon class="icon-sm" svgIcon="mat:info"></mat-icon>
+                  </div>
+                  <div>
+                    <p class="m-0 body-1 flex items-center gap-1">
+                      <mat-icon class="icon-sm"
+                        [svgIcon]="parametrage.en_maintenance ? 'mat:check_circle' : 'mat:cancel'"
+                        [class.text-green-600]="parametrage.en_maintenance"
+                        [class.text-red-400]="!parametrage.en_maintenance"></mat-icon>
+                      {{ parametrage.en_maintenance ? 'Oui' : 'Non' }}
+                    </p>
+                    <p class="m-0 caption text-hint">En maintenance</p>
+                  </div>
+                </div>
+
+                <div class="py-3 flex items-center">
+                  <div
+                    class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 ltr:mr-3 rtl:ml-3 flex items-center justify-center flex-none">
+                    <mat-icon class="icon-sm" svgIcon="mat:radio_button_checked"></mat-icon>
+                  </div>
+                  <div>
+                    <p class="m-0 body-1 flex items-center gap-1">
+                      <mat-icon class="icon-sm" [svgIcon]="parametrage.statut ? 'mat:check_circle' : 'mat:cancel'"
+                        [class.text-green-600]="parametrage.statut"
+                        [class.text-red-400]="!parametrage.statut"></mat-icon>
+                      {{ parametrage.statut ? 'Actif' : 'Inactif' }}
+                    </p>
+                    <p class="m-0 caption text-hint">Statut de l'établissement</p>
+                  </div>
+                </div>
+              </ng-container>
+
+            </div>
+
+            <div class="px-6 py-4 flex justify-end">
+              <button color="primary" mat-raised-button (click)="editParametrage(parametrage)"
+                matTooltip="Mettre à jour le paramétrage" type="button">
+                <mat-icon svgIcon="mat:edit"></mat-icon>
+                Modifier
+              </button>
+            </div>
+          </ng-container>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

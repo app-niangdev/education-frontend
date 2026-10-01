@@ -1,0 +1,52 @@
+// La zone de saisie. La hauteur est bornée par `max-h-32` dans le gabarit :
+// passé cette limite, le texte défile au lieu de manger le fil de messages.
+//
+// `cdkTextareaAutosize` du CDK n'est pas utilisé ici : il impose un cycle de
+// mesure à chaque frappe, alors qu'un simple `rows` suffit tant que la borne
+// haute est posée en CSS.
+textarea {
+  min-height: 2.5rem;
+  line-height: 1.5;
+
+  // En dessous de 16px, Safari iOS zoome automatiquement la page au focus
+  // du champ : la mise en page responsive part en vrille tant que le clavier
+  // reste ouvert. 16px est la taille minimale qui désactive ce comportement.
+  font-size: 16px;
+}
+
+// Le conteneur de la barre de saisie, en bas d'écran. Sur un téléphone à
+// encoche ou à barre de gestes, le système réserve une zone en bas de
+// l'écran : sans ce padding, le bouton d'envoi se retrouve sous cette barre.
+.zone-saisie-conteneur {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+// La bordure est posée ici, et non par des utilitaires Tailwind.
+//
+// La configuration du thème (tailwind.config.ts) REMPLACE `borderColor` par un
+// couple `DEFAULT` / `divider` : les classes `border-gray-300` et
+// `focus:border-primary-600` ne sont donc jamais générées — vérifié dans le
+// CSS compilé, elles sont introuvables dans tout le build. Les utiliser aurait
+// donné un champ sans aucune bordure, au repos comme au focus.
+//
+// On passe donc par les variables CSS du thème, que ThemeColorService réécrit
+// sur <body> : le repère suit la couleur de l'établissement sans rebuild.
+.zone-saisie {
+  border: 1px solid var(--vex-foreground-divider);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+
+  // Au repos, le trait reste discret ; au focus il prend la couleur primaire
+  // et double d'épaisseur.
+  //
+  // L'épaisseur vient d'un `box-shadow` et non d'une bordure plus large : une
+  // bordure de 2px ferait grandir le champ d'un pixel à chaque focus, décalant
+  // le bouton d'envoi. L'ombre se superpose sans occuper de place.
+  //
+  // La couleur seule ne suffirait pas : un trait d'un pixel qui change de
+  // teinte se remarque à peine, et pas du tout pour qui distingue mal les
+  // couleurs.
+  &:focus {
+    border-color: rgb(var(--vex-color-primary-600));
+    box-shadow: 0 0 0 1px rgb(var(--vex-color-primary-600));
+  }
+}

@@ -1,0 +1,196 @@
+<div>
+
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:description"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">
+        {{ contrat?.numero_contrat ?? 'Contrat' }}
+      </h2>
+      <p class="m-0 caption text-hint">{{ employe }}</p>
+    </div>
+
+    <!-- La modification n'est offerte que si le contrat est encore ouvert. -->
+    <button *ngIf="contrat && !estClos && !edition" mat-stroked-button type="button"
+      (click)="basculerEdition()">
+      <mat-icon svgIcon="mat:edit" class="icon-sm ltr:mr-2 rtl:ml-2"></mat-icon>
+      Modifier
+    </button>
+  </div>
+
+  <mat-dialog-content class="px-6 py-4">
+
+    <div *ngIf="loading" class="flex items-center justify-center py-12">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+
+    <div *ngIf="!loading && !contrat" class="py-12 text-center text-hint caption">
+      Contrat introuvable
+    </div>
+
+    <ng-container *ngIf="!loading && contrat">
+
+      <!-- ── Lecture ── -->
+      <div *ngIf="!edition" class="flex flex-col gap-5">
+
+        <div *ngIf="estClos"
+             class="flex items-start gap-3 rounded p-3 bg-gray-100 text-hint caption">
+          <mat-icon svgIcon="mat:lock" class="icon-sm flex-none mt-0.5"></mat-icon>
+          <span>
+            Ce contrat est <strong>{{ libelleStatut(contrat) }}</strong> et n'est plus
+            modifiable. Pour prolonger l'engagement, créez un renouvellement.
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+
+          <div>
+            <p class="caption text-hint m-0">Statut</p>
+            <p class="body-2 font-medium m-0">
+              {{ libelleStatut(contrat) }}
+              <span *ngIf="contrat.en_periode_essai"
+                class="ml-1 rounded px-2 py-0.5 text-xs bg-purple-100 text-purple-700">
+                Période d'essai
+              </span>
+            </p>
+          </div>
+
+          <div>
+            <p class="caption text-hint m-0">Type de contrat</p>
+            <p class="body-2 font-medium m-0">{{ contrat.type_contrat_libelle ?? '—' }}</p>
+          </div>
+
+          <div>
+            <p class="caption text-hint m-0">Fonction</p>
+            <p class="body-2 font-medium m-0">{{ contrat.fonction ?? '—' }}</p>
+          </div>
+
+          <div>
+            <p class="caption text-hint m-0">Rémunération</p>
+            <p class="body-2 font-medium m-0">{{ contrat.remuneration_libelle ?? '—' }}</p>
+          </div>
+
+          <div>
+            <p class="caption text-hint m-0">Date de début</p>
+            <p class="body-2 font-medium m-0">{{ formaterDate(contrat.date_debut) }}</p>
+          </div>
+
+          <div>
+            <p class="caption text-hint m-0">Date de fin</p>
+            <p class="body-2 font-medium m-0">
+              {{ contrat.date_fin ? formaterDate(contrat.date_fin) : 'Sans terme' }}
+            </p>
+          </div>
+
+          <div *ngIf="contrat.duree_periode_essai">
+            <p class="caption text-hint m-0">Période d'essai</p>
+            <p class="body-2 font-medium m-0">{{ contrat.duree_periode_essai }} mois</p>
+          </div>
+
+          <div *ngIf="contrat.volume_horaire_hebdo">
+            <p class="caption text-hint m-0">Volume horaire</p>
+            <p class="body-2 font-medium m-0">{{ contrat.volume_horaire_hebdo }} h / semaine</p>
+          </div>
+
+          <div *ngIf="contrat.lieu_travail" class="sm:col-span-2">
+            <p class="caption text-hint m-0">Lieu de travail</p>
+            <p class="body-2 font-medium m-0">{{ contrat.lieu_travail }}</p>
+          </div>
+
+          <div *ngIf="contrat.parent" class="sm:col-span-2">
+            <p class="caption text-hint m-0">Renouvelle le contrat</p>
+            <p class="body-2 font-medium m-0">{{ contrat.parent.numero_contrat }}</p>
+          </div>
+
+        </div>
+
+        <!-- Résiliation : le motif éclaire le dossier, il est mis en avant. -->
+        <div *ngIf="contrat.date_resiliation" class="rounded p-3 bg-red-50">
+          <p class="caption text-red-800 font-semibold m-0 uppercase tracking-wide">
+            Résilié le {{ formaterDate(contrat.date_resiliation) }}
+          </p>
+          <p class="body-2 text-red-800 m-0 mt-1">{{ contrat.motif_resiliation ?? '—' }}</p>
+        </div>
+
+        <div *ngIf="contrat.observations">
+          <p class="caption text-hint m-0">Observations</p>
+          <p class="body-2 m-0 whitespace-pre-line">{{ contrat.observations }}</p>
+        </div>
+
+        <!-- ── Historique contractuel de l'employé ── -->
+        <div *ngIf="historique.length > 1">
+          <p class="caption font-semibold text-hint uppercase tracking-wide m-0">
+            Historique des contrats
+          </p>
+          <mat-divider class="mt-2 mb-3"></mat-divider>
+
+          <div class="flex flex-col gap-2">
+            <div *ngFor="let h of historique"
+              class="flex items-center gap-3 rounded px-3 py-2"
+              [ngClass]="h.id === contrat.id ? 'bg-primary-600/10' : 'bg-gray-50'">
+              <mat-icon svgIcon="mat:description" class="icon-sm text-hint flex-none"></mat-icon>
+              <div class="flex-auto">
+                <span class="body-2 font-medium">{{ h.numero_contrat }}</span>
+                <span class="caption text-hint ltr:ml-2 rtl:mr-2">
+                  {{ formaterDate(h.date_debut) }}
+                  <span *ngIf="h.date_fin"> → {{ formaterDate(h.date_fin) }}</span>
+                </span>
+              </div>
+              <span class="caption text-hint flex-none">{{ libelleStatut(h) }}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── Édition ── -->
+      <div *ngIf="edition">
+        <vex-contrat-form [form]="form" fonctionParDefaut=""></vex-contrat-form>
+      </div>
+
+    </ng-container>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+
+    <ng-container *ngIf="!edition">
+      <!-- Reste offert sur un contrat clos : c'est la pièce qui justifie une
+           période travaillée, longtemps après son terme. -->
+      <button mat-stroked-button type="button" color="primary"
+        (click)="telechargerPdf()" [disabled]="downloading || !contrat">
+        <ng-container *ngIf="!downloading">
+          <mat-icon svgIcon="mat:description" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+          Télécharger le contrat
+        </ng-container>
+        <ng-container *ngIf="downloading">
+          <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+          Génération…
+        </ng-container>
+      </button>
+
+      <button mat-stroked-button type="button" (click)="fermer()">Fermer</button>
+    </ng-container>
+
+    <ng-container *ngIf="edition">
+      <button mat-stroked-button type="button" (click)="basculerEdition()" [disabled]="saving">
+        Annuler
+      </button>
+
+      <button mat-raised-button color="primary" type="button" (click)="enregistrer()"
+        [disabled]="saving || form.invalid">
+        <ng-container *ngIf="!saving">
+          <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+          Enregistrer
+        </ng-container>
+        <ng-container *ngIf="saving">
+          <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+          Enregistrement…
+        </ng-container>
+      </button>
+    </ng-container>
+
+  </mat-dialog-actions>
+</div>

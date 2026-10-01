@@ -1,0 +1,75 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div
+      class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:book"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">
+        {{ data.isEdit ? 'Modifier la matière' : 'Nouvelle matière' }}
+      </h2>
+      <p class="m-0 caption text-hint">
+        {{ data.isEdit ? 'Modifiez les informations de cette matière' : 'Créez une nouvelle matière du catalogue' }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <mat-dialog-content class="px-6 py-4">
+    <form [formGroup]="form" class="flex flex-col gap-4">
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Nom de la matière</mat-label>
+          <mat-icon matPrefix svgIcon="mat:book" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="nom" placeholder="Ex: Mathématiques" />
+          <mat-error *ngIf="form.get('nom')?.hasError('required')">
+            Le nom est obligatoire
+          </mat-error>
+          <mat-error *ngIf="form.get('nom')?.hasError('maxlength')">
+            Le nom ne peut pas dépasser 100 caractères
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Code</mat-label>
+          <mat-icon matPrefix svgIcon="mat:grade" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="code" placeholder="Ex: MATH" />
+          <mat-error *ngIf="form.get('code')?.hasError('required')">
+            Le code est obligatoire
+          </mat-error>
+          <mat-error *ngIf="form.get('code')?.hasError('maxlength')">
+            Le code ne peut pas dépasser 20 caractères
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Description (optionnel)</mat-label>
+        <textarea matInput formControlName="description" rows="3"
+          placeholder="Description de la matière"></textarea>
+      </mat-form-field>
+
+    </form>
+  </mat-dialog-content>
+
+  <!-- Actions -->
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">
+      Annuler
+    </button>
+
+    <button mat-raised-button color="primary" type="button" (click)="onSubmit()"
+      [disabled]="!canSubmit">
+      <ng-container *ngIf="!loading">
+        <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        {{ data.isEdit ? 'Modifier' : 'Créer' }}
+      </ng-container>
+      <ng-container *ngIf="loading">
+        <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        {{ data.isEdit ? 'Modification...' : 'Création...' }}
+      </ng-container>
+    </button>
+  </mat-dialog-actions>
+</div>

@@ -1,0 +1,194 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- Header -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0 gap-4">
+      <button mat-icon-button type="button" (click)="retour()" matTooltip="Retour aux évaluations">
+        <mat-icon svgIcon="mat:arrow_back"></mat-icon>
+      </button>
+
+      <h2 class="display-1 font-bold m-0 flex items-center w-full">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:edit_note"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">Saisie des notes</span>
+      </h2>
+    </div>
+  </div>
+
+  <div class="container-fluid px-6">
+    <div class="mt-6 flex flex-col gap-6">
+
+      <!-- Loading -->
+      <div *ngIf="loading" class="card flex flex-col items-center justify-center gap-4 p-12">
+        <mat-spinner diameter="48"></mat-spinner>
+        <p class="m-0 text-hint">Chargement de la grille...</p>
+      </div>
+
+      <ng-container *ngIf="!loading && evaluation">
+
+        <!-- Récap évaluation -->
+        <div class="card px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p class="m-0 body-1 font-semibold">
+              {{ evaluation.titre }}
+              <span class="ml-2 caption font-medium text-primary-600">{{ typeLabel(evaluation.type) }}</span>
+            </p>
+            <p class="m-0 caption text-hint">
+              {{ matiereClasse() }}
+              &bull; {{ evaluation.periode?.libelle ?? '—' }}
+              &bull; {{ evaluation.date_evaluation | date: 'dd/MM/yyyy' }}
+              &bull; Barème /{{ evaluation.bareme }} &bull; Coeff {{ evaluation.coefficient }}
+            </p>
+          </div>
+          <div class="flex-none">
+            <span class="caption text-hint">{{ nbSaisies }} / {{ lignes.length }} saisie(s)</span>
+          </div>
+        </div>
+
+        <!-- Alerte saisie fermée -->
+        <div *ngIf="saisieFermee"
+          class="card px-6 py-4 flex items-center gap-3 bg-amber-50 border border-amber-200">
+          <mat-icon svgIcon="mat:lock" class="text-amber-600"></mat-icon>
+          <p class="m-0 caption text-amber-800">
+            La saisie des notes est close pour cette période (date limite dépassée). Les notes sont en lecture seule.
+          </p>
+        </div>
+
+        <!-- Grille -->
+        <div class="card">
+          <div class="px-6 py-4 border-b">
+            <h2 class="title m-0">Élèves de la classe</h2>
+            <p class="m-0 caption text-hint">Saisissez la note sur {{ evaluation.bareme }} ou cochez « Absent »</p>
+          </div>
+
+          <!-- Empty state -->
+          <div *ngIf="lignes.length === 0" class="flex flex-col items-center justify-center gap-4 p-12">
+            <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+              <mat-icon svgIcon="mat:group_off" class="icon-lg"></mat-icon>
+            </div>
+            <h3 class="title m-0">Aucun élève inscrit</h3>
+            <p class="m-0 caption text-hint text-center">
+              Aucun élève n'a d'inscription validée dans cette classe pour l'année en cours.
+            </p>
+          </div>
+
+          <!-- Table (desktop) -->
+          <div class="hidden lg:block overflow-x-auto" *ngIf="lignes.length > 0">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b text-hint caption uppercase">
+                  <th class="px-6 py-3 font-medium">#</th>
+                  <th class="px-6 py-3 font-medium">Élève</th>
+                  <th class="px-6 py-3 font-medium">Matricule</th>
+                  <th class="px-6 py-3 font-medium w-40">Note /{{ evaluation.bareme }}</th>
+                  <th class="px-6 py-3 font-medium w-24">Absent</th>
+                  <th class="px-6 py-3 font-medium">Appréciation</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                <tr *ngFor="let ligne of lignes; let i = index" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-3 text-hint">{{ i + 1 }}</td>
+                  <td class="px-6 py-3 font-medium">{{ ligne.nom_complet }}</td>
+                  <td class="px-6 py-3 text-hint">{{ ligne.matricule ?? '—' }}</td>
+                  <td class="px-6 py-3">
+                    <mat-form-field appearance="outline" class="w-28" subscriptSizing="dynamic">
+                      <input matInput type="number" min="0" [max]="evaluation.bareme" step="0.25"
+                        inputmode="decimal"
+                        [(ngModel)]="ligne.valeur"
+                        [disabled]="ligne.absent || saisieFermee"
+                        [class.text-red-600]="noteInvalide(ligne)"
+                        placeholder="—" />
+                    </mat-form-field>
+                  </td>
+                  <td class="px-6 py-3">
+                    <mat-checkbox color="primary"
+                      [(ngModel)]="ligne.absent"
+                      [disabled]="saisieFermee"
+                      (change)="onAbsentChange(ligne)">
+                    </mat-checkbox>
+                  </td>
+                  <td class="px-6 py-3">
+                    <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+                      <input matInput [(ngModel)]="ligne.appreciation"
+                        [disabled]="saisieFermee"
+                        maxlength="255" placeholder="Optionnel" />
+                    </mat-form-field>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Cartes par élève (mobile / tablette) -->
+          <div class="lg:hidden flex flex-col gap-3 p-4" *ngIf="lignes.length > 0">
+            <div *ngFor="let ligne of lignes; let i = index"
+              class="rounded-lg border border-gray-200 shadow-sm p-4 flex flex-col gap-3"
+              [class.bg-amber-50]="ligne.absent">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="m-0 body-1 font-semibold truncate">
+                    <span class="text-hint font-normal">{{ i + 1 }}.</span> {{ ligne.nom_complet }}
+                  </p>
+                  <p class="m-0 caption text-hint">{{ ligne.matricule ?? '—' }}</p>
+                </div>
+                <mat-checkbox color="primary" class="flex-none"
+                  [(ngModel)]="ligne.absent" [disabled]="saisieFermee" (change)="onAbsentChange(ligne)">
+                  Absent
+                </mat-checkbox>
+              </div>
+
+              <div class="flex items-start gap-3">
+                <mat-form-field appearance="outline" class="w-24 flex-none" subscriptSizing="dynamic">
+                  <mat-label>Note /{{ evaluation.bareme }}</mat-label>
+                  <input matInput type="number" min="0" [max]="evaluation.bareme" step="0.25"
+                    inputmode="decimal"
+                    [(ngModel)]="ligne.valeur"
+                    [disabled]="ligne.absent || saisieFermee"
+                    [class.text-red-600]="noteInvalide(ligne)"
+                    placeholder="—" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="flex-auto min-w-0" subscriptSizing="dynamic">
+                  <mat-label>Appréciation</mat-label>
+                  <input matInput [(ngModel)]="ligne.appreciation"
+                    [disabled]="saisieFermee" maxlength="255" placeholder="Optionnel" />
+                </mat-form-field>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barre d'action : collante en bas sur mobile pour rester accessible -->
+        <div class="sticky bottom-0 z-10 -mx-6 px-6 py-3 bg-white/95 backdrop-blur border-t
+                    flex flex-col sm:flex-row sm:items-center gap-3
+                    lg:static lg:mx-0 lg:px-0 lg:py-0 lg:bg-transparent lg:border-0 lg:backdrop-blur-none lg:pb-6">
+          <p class="m-0 caption text-red-600" *ngIf="hasInvalides">
+            <mat-icon svgIcon="mat:error" class="icon-sm align-middle"></mat-icon>
+            Une ou plusieurs notes dépassent le barème (/{{ evaluation.bareme }}).
+          </p>
+          <span class="hidden sm:block flex-auto"></span>
+
+          <div class="flex items-center gap-3">
+            <button mat-stroked-button type="button" (click)="retour()" class="flex-none">Retour</button>
+
+            <button mat-raised-button color="primary" type="button" (click)="save()" [disabled]="!canSave"
+              class="flex-auto sm:flex-none">
+              <ng-container *ngIf="!saving">
+                <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+                Enregistrer les notes
+              </ng-container>
+              <ng-container *ngIf="saving">
+                <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+                Enregistrement...
+              </ng-container>
+            </button>
+          </div>
+        </div>
+
+      </ng-container>
+
+    </div>
+  </div>
+
+</div>

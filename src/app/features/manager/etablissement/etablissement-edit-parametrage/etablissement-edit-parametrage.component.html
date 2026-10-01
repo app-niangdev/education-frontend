@@ -1,0 +1,128 @@
+<form (ngSubmit)="save()" [formGroup]="form">
+  <div class="flex items-center" mat-dialog-title>
+    <h2 class="headline m-0 flex-auto">Paramétrage de l'application</h2>
+    <button class="text-secondary" mat-dialog-close mat-icon-button type="button">
+      <mat-icon svgIcon="mat:close"></mat-icon>
+    </button>
+  </div>
+
+  <mat-divider class="text-border"></mat-divider>
+
+  <mat-dialog-content class="flex flex-col gap-4 pt-4">
+
+    <mat-form-field class="flex-auto">
+      <mat-label>Numéro de transaction</mat-label>
+      <input cdkFocusInitial formControlName="telephone_transaction" matInput placeholder="771234567" />
+      <mat-icon matIconPrefix svgIcon="mat:phone"></mat-icon>
+      <mat-hint>Numéro recevant les paiements</mat-hint>
+      <mat-error *ngIf="form.controls['telephone_transaction'].errors?.['required']">
+        Le numéro est obligatoire
+      </mat-error>
+      <mat-error *ngIf="form.controls['telephone_transaction'].errors?.['minlength']">
+        Minimum 9 caractères
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Code couleur : cliquer le champ ouvre la palette, on peut aussi taper le code -->
+    <div class="relative mt-2">
+      <div class="flex items-center gap-2 rounded border px-3 h-14 bg-foreground transition-colors"
+        [class.border-gray-400]="form.controls['code_couleur'].valid || form.controls['code_couleur'].untouched"
+        [class.border-red-500]="form.controls['code_couleur'].invalid && form.controls['code_couleur'].touched"
+        [class.focus-within:border-primary-600]="true"
+        [class.focus-within:border-2]="true">
+        <mat-icon class="icon-sm text-hint flex-shrink-0" svgIcon="mat:settings"></mat-icon>
+        <input id="code_couleur" formControlName="code_couleur" placeholder="#16a34a" autocomplete="off"
+          class="flex-auto bg-transparent border-0 outline-none body-1 cursor-pointer"
+          [cpPosition]="'bottom-left'"
+          [cpOutputFormat]="'hex'"
+          [cpAlphaChannel]="'disabled'"
+          [cpPresetLabel]="'Couleurs suggérées'"
+          [colorPicker]="form.get('code_couleur')?.value || '#000000'"
+          (colorPickerChange)="form.get('code_couleur')?.setValue($event); form.get('code_couleur')?.markAsDirty()" />
+        <!-- Pastille indicateur de la couleur choisie -->
+        <span class="w-7 h-7 rounded-md border border-gray-300 flex-shrink-0 pointer-events-none"
+          [style.background-color]="form.get('code_couleur')?.valid ? form.get('code_couleur')?.value : '#ffffff'">
+        </span>
+      </div>
+      <!-- Label flottant sur la bordure (style Material outline) -->
+      <label for="code_couleur"
+        class="absolute -top-2 left-3 px-1 bg-foreground caption text-hint pointer-events-none">
+        Code couleur (ex: #16a34a)
+      </label>
+      <p class="m-0 mt-1 caption text-hint">
+        Couleur principale de toute la plateforme
+      </p>
+      <p class="m-0 mt-1 caption text-red-500"
+        *ngIf="form.controls['code_couleur'].touched && form.controls['code_couleur'].errors?.['required']">
+        Le code couleur est obligatoire
+      </p>
+      <p class="m-0 mt-1 caption text-red-500"
+        *ngIf="form.controls['code_couleur'].errors?.['pattern']">
+        Format invalide — utilisez #RGB ou #RRGGBB
+      </p>
+    </div>
+
+    <mat-form-field class="flex-auto mt-2">
+      <mat-label>Barème par défaut des évaluations</mat-label>
+      <input formControlName="bareme_defaut" matInput type="number" min="1" max="100" placeholder="20" />
+      <mat-icon matIconPrefix svgIcon="mat:grade"></mat-icon>
+      <mat-hint>Note maximale proposée à la création d'une évaluation</mat-hint>
+      <mat-error *ngIf="form.controls['bareme_defaut'].errors?.['required']">
+        Le barème est obligatoire
+      </mat-error>
+      <mat-error
+        *ngIf="form.controls['bareme_defaut'].errors?.['min'] || form.controls['bareme_defaut'].errors?.['max']">
+        Le barème doit être compris entre 1 et 100
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Statut et maintenance coupent l'accès à toute la plateforme : réservés
+         à l'admin, le serveur les écartant pour les autres rôles. -->
+    <ng-container *ngIf="isAdmin">
+
+      <!-- Mode maintenance -->
+      <div class="flex items-center justify-between py-3 px-4 rounded-lg border border-gray-200 bg-gray-50 mt-2">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-9 h-9 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center flex-shrink-0">
+            <mat-icon class="icon-sm" svgIcon="mat:info"></mat-icon>
+          </div>
+          <div>
+            <p class="m-0 body-2 font-medium">Mode maintenance</p>
+            <p class="m-0 caption text-hint">Rendre l'application inaccessible aux utilisateurs</p>
+          </div>
+        </div>
+        <mat-slide-toggle formControlName="en_maintenance" color="primary"></mat-slide-toggle>
+      </div>
+
+      <!-- Statut -->
+      <div class="flex items-center justify-between py-3 px-4 rounded-lg border border-gray-200 bg-gray-50">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-9 h-9 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center flex-shrink-0">
+            <mat-icon class="icon-sm" svgIcon="mat:radio_button_checked"></mat-icon>
+          </div>
+          <div>
+            <p class="m-0 body-2 font-medium">Statut de l'établissement</p>
+            <p class="m-0 caption text-hint">Activer ou désactiver l'établissement</p>
+          </div>
+        </div>
+        <mat-slide-toggle formControlName="statut" color="primary"></mat-slide-toggle>
+      </div>
+
+    </ng-container>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button color="warn" mat-raised-button type="button" (click)="close()" [disabled]="isSubmitting">
+      <mat-icon svgIcon="mat:cancel"></mat-icon>
+      <span>Annuler</span>
+    </button>
+    <button [disabled]="form.invalid || isSubmitting" type="submit" color="primary" mat-flat-button class="ml-4">
+      <mat-spinner *ngIf="isSubmitting" diameter="18" class="mr-2"></mat-spinner>
+      <mat-icon *ngIf="!isSubmitting" svgIcon="mat:save"></mat-icon>
+      <span>Enregistrer</span>
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -1,0 +1,143 @@
+<vex-liste-page
+  icon="mat:layers"
+  titre="Niveaux &amp; frais scolaires"
+  titreCarte="Niveaux de l'établissement"
+  [sousTitre]="annee()
+    ? 'Tarifs de l\'année ' + annee()?.nom + ' • frais annuel = inscription + mensualité × nombre'
+    : 'Aucune année scolaire en cours'"
+  [loading]="loading"
+  [vide]="niveauxFiltres().length === 0"
+  [aDesFiltres]="true">
+
+  <!-- Actions en-tête -->
+  <button entete mat-stroked-button type="button" (click)="genererGrille()"
+    [disabled]="generating || !annee()" class="hidden sm:inline-flex"
+    [matTooltip]="annee()
+      ? 'Reprendre les tarifs de l’année précédente pour les niveaux sans frais'
+      : 'Aucune année scolaire en cours'">
+    <ng-container *ngIf="!generating">
+      <mat-icon svgIcon="mat:autorenew" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+      Reprendre les tarifs
+    </ng-container>
+    <ng-container *ngIf="generating">
+      <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+      Reprise...
+    </ng-container>
+  </button>
+  <button entete color="primary" mat-raised-button type="button" (click)="openAddDialog()"
+    class="hidden sm:inline-flex">
+    <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    Nouveau niveau
+  </button>
+
+  <!-- Filtres -->
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-80" subscriptSizing="dynamic">
+    <mat-label>Rechercher</mat-label>
+    <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput [value]="recherche()" (input)="onRecherche($any($event.target).value)"
+      placeholder="Nom, code, cycle" />
+  </mat-form-field>
+
+  <!-- Alertes au-dessus de la liste -->
+  <div avant class="flex flex-col gap-4">
+    <!-- Sans année en cours, aucun tarif ne peut être saisi -->
+    <div *ngIf="!loading && !annee()"
+      class="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3">
+      <mat-icon svgIcon="mat:warning" class="text-amber-700 icon-sm flex-none mt-0.5"></mat-icon>
+      <div>
+        <p class="m-0 body-2 font-medium text-amber-900">Aucune année scolaire en cours</p>
+        <p class="m-0 caption text-amber-800">
+          Les niveaux s'affichent sans tarif. Ouvrez une année scolaire pour
+          saisir les frais d'inscription et les mensualités.
+        </p>
+      </div>
+    </div>
+
+    <!-- Des niveaux sans tarif bloqueraient les inscriptions -->
+    <div *ngIf="!loading && annee() && niveauxSansTarif() > 0"
+      class="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3">
+      <mat-icon svgIcon="mat:warning" class="text-amber-700 icon-sm flex-none mt-0.5"></mat-icon>
+      <div>
+        <p class="m-0 body-2 font-medium text-amber-900">
+          {{ niveauxSansTarif() }} niveau(x) sans frais scolaires
+        </p>
+        <p class="m-0 caption text-amber-800">
+          Aucune inscription n'est possible sur un niveau non tarifé. Saisissez
+          leurs montants, ou reprenez ceux de l'année précédente.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let niveau of niveauxFiltres()"
+    (modifier)="editNiveau(niveau)" (supprimer)="deleteNiveau(niveau)">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+      <mat-icon svgIcon="mat:layers" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">
+        {{ niveau.nom }}
+        <span class="caption text-hint font-normal">({{ niveau.code }})</span>
+      </p>
+      <p class="m-0 caption text-hint">
+        <span class="font-medium text-primary-600">{{ niveau.cycle_libelle ?? niveau.cycle }}</span>
+        <ng-container *ngIf="niveau.frais_scolaire as frais">
+          &bull; <span>{{ frais.nombre_mensualites }} mensualité(s)</span>
+          <!-- Masqué sur mobile pour laisser la place aux montants -->
+          <span *ngIf="frais.neuvieme_mois_inclus" class="hidden sm:inline text-amber-700">
+            &bull; 9ᵉ mois inclus
+          </span>
+        </ng-container>
+      </p>
+    </div>
+
+    <!-- Tarifs de l'année en cours, poussés à droite (mobile + desktop) -->
+    <div secondaire *ngIf="niveau.frais_scolaire as frais; else sansTarif"
+      class="flex items-center gap-4 sm:gap-6 ltr:ml-auto rtl:mr-auto">
+      <div class="flex flex-col items-end">
+        <span class="caption text-hint">Inscription</span>
+        <span class="body-2 font-medium whitespace-nowrap">{{ formatMontant(frais.montant_inscription) }}</span>
+      </div>
+      <div class="flex flex-col items-end">
+        <span class="caption text-hint">Mensualité</span>
+        <span class="body-2 font-medium whitespace-nowrap">{{ formatMontant(frais.montant_mensualite) }}</span>
+      </div>
+      <div class="flex flex-col items-end">
+        <span class="caption text-hint">Frais annuel</span>
+        <span class="body-2 font-bold text-primary-600 whitespace-nowrap">{{ formatMontant(frais.frais_annuel) }}</span>
+      </div>
+    </div>
+    <ng-template #sansTarif>
+      <span badge class="caption text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 ltr:ml-auto rtl:mr-auto">
+        Aucun tarif défini
+      </span>
+    </ng-template>
+  </vex-liste-ligne>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:layers" class="icon-lg"></mat-icon>
+    </div>
+
+    <ng-container *ngIf="recherche(); else aucunNiveau">
+      <h3 class="title m-0">Aucun résultat</h3>
+      <p class="m-0 caption text-hint text-center">
+        Aucun niveau ne correspond à « {{ recherche() }} ».
+      </p>
+    </ng-container>
+
+    <ng-template #aucunNiveau>
+      <h3 class="title m-0">Aucun niveau</h3>
+      <p class="m-0 caption text-hint text-center">
+        Commencez par créer le premier niveau de votre établissement,
+        avec ses frais scolaires.
+      </p>
+      <button color="primary" mat-raised-button type="button" (click)="openAddDialog()">
+        <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Créer un niveau
+      </button>
+    </ng-template>
+  </div>
+</vex-liste-page>

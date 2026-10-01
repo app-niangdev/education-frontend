@@ -1,0 +1,267 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- Header -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex flex-col sm:flex-row sm:items-center container px-0 gap-4">
+      <h2 class="display-1 font-bold m-0 flex items-center w-full">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:insert_chart"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">
+          Bonjour {{ nom }}
+          <span class="caption text-hint font-normal block">Suivi de l'assiduité</span>
+        </span>
+      </h2>
+
+      <div class="flex items-center gap-3 flex-none">
+        <mat-form-field appearance="outline" class="w-40" subscriptSizing="dynamic">
+          <mat-label>Jour</mat-label>
+          <input matInput [matDatepicker]="picker" [formControl]="dateCtrl" />
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-44" subscriptSizing="dynamic">
+          <mat-label>Période</mat-label>
+          <mat-select [formControl]="periodeCtrl">
+            <mat-option [value]="null">Toute l'année</mat-option>
+            <mat-option *ngFor="let p of periodes" [value]="p.id">{{ p.libelle }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="flex-auto flex items-center justify-center p-12">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <!-- Le chargement a abouti mais l'API n'a rien renvoyé (erreur réseau ou serveur). -->
+  <div *ngIf="!loading && !stats() && chargementTente" class="flex-auto flex items-center justify-center p-12">
+    <div class="card flex flex-col items-center gap-4 p-12">
+      <mat-icon svgIcon="mat:warning" class="text-amber-700"></mat-icon>
+      <p class="m-0 text-hint">Impossible de charger le tableau de bord.</p>
+      <button color="primary" mat-raised-button type="button" (click)="loadData()">
+        Réessayer
+      </button>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading">
+  <div *ngIf="stats() as s" class="container-fluid px-6 pb-8">
+
+    <!-- Les quatre compteurs du jour -->
+    <div class="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div *ngFor="let c of compteurs()" class="card p-4 flex items-center gap-3" @scaleIn>
+        <div class="w-11 h-11 rounded-full flex-none flex items-center justify-center"
+          [ngClass]="c.couleur">
+          <mat-icon [svgIcon]="c.icon" class="icon-sm"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <p class="m-0 display-1 font-bold leading-none">{{ c.valeur }}</p>
+          <p class="m-0 caption text-hint truncate">{{ c.label }}</p>
+          <p *ngIf="c.aide" class="m-0 caption text-hint truncate">{{ c.aide }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Un taux d'appels bas rend tous les autres chiffres peu fiables -->
+    <div *ngIf="s.appels.taux < 60 && s.appels.attendues > 0"
+      class="mt-4 card px-6 py-3 bg-amber-50 border border-amber-200 flex items-start gap-3">
+      <mat-icon svgIcon="mat:warning" class="text-amber-600 icon-sm flex-none mt-0.5"></mat-icon>
+      <p class="m-0 caption text-amber-800">
+        Moins de 60 % des appels ont été faits ce jour : les chiffres ci-dessus
+        <strong>sous-estiment</strong> l'absentéisme réel. Relancez les enseignants concernés.
+      </p>
+    </div>
+
+    <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Appels manquants : la to-do de relance -->
+      <div class="card">
+        <div class="px-6 py-4 border-b flex items-center justify-between gap-3">
+          <div>
+            <h2 class="title m-0">Appels non faits</h2>
+            <p class="m-0 caption text-hint">{{ s.date | date: 'EEEE dd/MM/yyyy' }}</p>
+          </div>
+          <span class="px-3 py-1 rounded-full caption font-medium"
+            [ngClass]="appelsManquants().length ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'">
+            {{ appelsManquants().length }}
+          </span>
+        </div>
+
+        <div class="divide-y max-h-80 overflow-y-auto" *ngIf="appelsManquants().length > 0">
+          <div *ngFor="let creneau of appelsManquants()" class="px-6 py-3">
+            <p class="m-0 body-2 font-medium">
+              {{ matiere(creneau) }}
+              <span class="caption text-hint font-normal">· {{ classe(creneau) }}</span>
+            </p>
+            <p class="m-0 caption text-hint">
+              {{ heure(creneau.heure_debut) }} – {{ heure(creneau.heure_fin) }}
+              &bull; {{ enseignant(creneau) }}
+            </p>
+          </div>
+        </div>
+
+        <div *ngIf="appelsManquants().length === 0"
+          class="flex flex-col items-center justify-center gap-3 p-8 text-center">
+          <div class="w-12 h-12 rounded-full bg-green-100 text-green-700 flex items-center justify-center">
+            <mat-icon svgIcon="mat:done_all" class="icon-sm"></mat-icon>
+          </div>
+          <p class="m-0 caption text-hint">Tous les appels du jour ont été faits.</p>
+        </div>
+      </div>
+
+      <!-- Récidivistes : classés sur les heures NON justifiées -->
+      <div class="card">
+        <div class="px-6 py-4 border-b flex items-center justify-between gap-3">
+          <div>
+            <h2 class="title m-0">Élèves les plus absents</h2>
+            <p class="m-0 caption text-hint">Heures non justifiées sur la période</p>
+          </div>
+          <button mat-icon-button type="button" matTooltip="Voir le registre" (click)="versRegistre()">
+            <mat-icon svgIcon="mat:visibility" class="icon-sm"></mat-icon>
+          </button>
+        </div>
+
+        <div class="divide-y max-h-80 overflow-y-auto" *ngIf="s.recidivistes.length > 0">
+          <div *ngFor="let r of s.recidivistes; let i = index"
+            class="px-6 py-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="w-6 h-6 rounded-full bg-primary-600/10 text-primary-600 caption font-bold flex-none flex items-center justify-center">
+                {{ i + 1 }}
+              </span>
+              <div class="min-w-0">
+                <p class="m-0 body-2 font-medium truncate">{{ r.prenom }} {{ r.nom }}</p>
+                <p class="m-0 caption text-hint">
+                  {{ r.matricule ?? '—' }}
+                  <span *ngIf="r.retards"> &bull; {{ r.retards }} retard(s)</span>
+                </p>
+              </div>
+            </div>
+            <div class="text-right flex-none">
+              <p class="m-0 body-2 font-bold text-red-600">
+                {{ heures(r.minutes_non_justifiees) }} h
+              </p>
+              <p class="m-0 caption text-hint">{{ r.derniere_absence | date: 'dd/MM' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="s.recidivistes.length === 0"
+          class="flex flex-col items-center justify-center gap-3 p-8 text-center">
+          <div class="w-12 h-12 rounded-full bg-green-100 text-green-700 flex items-center justify-center">
+            <mat-icon svgIcon="mat:done_all" class="icon-sm"></mat-icon>
+          </div>
+          <p class="m-0 caption text-hint">Aucune absence non justifiée sur la période.</p>
+        </div>
+      </div>
+
+      <!-- Absences à justifier : la file de travail -->
+      <div class="card p-6 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4 min-w-0">
+          <div class="w-11 h-11 rounded-full flex-none flex items-center justify-center"
+            [ngClass]="s.a_justifier ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'">
+            <mat-icon [svgIcon]="s.a_justifier ? 'mat:warning' : 'mat:done_all'" class="icon-sm"></mat-icon>
+          </div>
+          <div class="min-w-0">
+            <p class="m-0 display-1 font-bold leading-none">{{ s.a_justifier }}</p>
+            <p class="m-0 caption text-hint">Absence(s) à justifier depuis plus de 3 jours</p>
+          </div>
+        </div>
+
+        <button *ngIf="s.a_justifier" mat-stroked-button color="primary" type="button"
+          (click)="versAJustifier()" class="flex-none">
+          Traiter
+        </button>
+      </div>
+
+      <!-- Tendance sur 7 jours -->
+      <div class="card p-6">
+        <h2 class="title m-0">Tendance sur 7 jours</h2>
+        <p class="m-0 caption text-hint">Nombre d'absences par jour</p>
+
+        <div class="mt-6 flex items-end gap-2" style="height: 120px;">
+          <div *ngFor="let t of s.tendance"
+            class="flex-1 flex flex-col items-center gap-2 h-full justify-end"
+            [matTooltip]="t.total + ' absence(s)'">
+            <span class="caption font-medium" [class.text-hint]="t.total === 0">{{ t.total }}</span>
+            <div class="w-full rounded-t transition-all duration-300"
+              [ngClass]="t.total > 0 ? 'bg-primary-600' : 'bg-gray-200'"
+              [style.height.%]="t.total > 0 ? pourcentage(t.total, tendanceMax) : 3">
+            </div>
+            <span class="caption text-hint whitespace-nowrap" style="font-size: 10px;">
+              {{ t.libelle }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Répartition par classe, normalisée par l'effectif -->
+      <div class="card p-6 lg:col-span-2" *ngIf="s.par_classe.length > 0">
+        <h2 class="title m-0">Absentéisme par classe</h2>
+        <p class="m-0 caption text-hint">
+          Heures d'absence rapportées à l'effectif — comparer sans pénaliser les grandes classes
+        </p>
+
+        <div class="mt-4 flex flex-col gap-3">
+          <div *ngFor="let c of s.par_classe" class="flex items-center gap-4">
+            <span class="w-32 flex-none body-2 font-medium truncate">{{ c.classe_nom }}</span>
+
+            <div class="flex-auto h-6 bg-gray-100 rounded overflow-hidden">
+              <div class="h-full bg-primary-600 rounded transition-all duration-300"
+                [style.width.%]="pourcentage(c.heures_par_eleve, repartitionMax)">
+              </div>
+            </div>
+
+            <span class="w-36 flex-none caption text-hint text-right whitespace-nowrap">
+              {{ c.heures_par_eleve }} h/élève
+              <span class="text-hint">({{ c.heures }} h · {{ c.effectif }} él.)</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Raccourcis : ils restaient utiles, ils ne suffisaient simplement pas -->
+    <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <a routerLink="/index/supervisor/attendance"
+        class="card p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors duration-150">
+        <div class="w-11 h-11 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+          <mat-icon svgIcon="mat:group_off" class="icon-sm"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <p class="m-0 body-2 font-medium">Registre d'assiduité</p>
+          <p class="m-0 caption text-hint truncate">Justifier et corriger</p>
+        </div>
+      </a>
+
+      <a routerLink="/index/supervisor/inscriptions"
+        class="card p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors duration-150">
+        <div class="w-11 h-11 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+          <mat-icon svgIcon="mat:assignment" class="icon-sm"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <p class="m-0 body-2 font-medium">Inscriptions</p>
+          <p class="m-0 caption text-hint truncate">Enregistrer une inscription</p>
+        </div>
+      </a>
+
+      <a routerLink="/index/supervisor/students"
+        class="card p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors duration-150">
+        <div class="w-11 h-11 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+          <mat-icon svgIcon="mat:contacts" class="icon-sm"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <p class="m-0 body-2 font-medium">Élèves</p>
+          <p class="m-0 caption text-hint truncate">Consulter et modifier</p>
+        </div>
+      </a>
+    </div>
+
+  </div>
+  </ng-container>
+</div>

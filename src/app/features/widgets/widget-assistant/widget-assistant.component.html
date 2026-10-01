@@ -1,0 +1,30 @@
+<div class="card bg-primary-600 flex">
+  <div class="p-4 ml-4 flex-none self-center hidden sm:block">
+    <img
+      src="../../../../../../assets/img/illustrations/completing.svg"
+      style="height: 168px; width: 152px" />
+  </div>
+
+  <div class="p-6 text-on-primary-600 flex-auto" *ngIf="dataCurrentUserAuth">
+    <h2 class="headline m-0">Bravo, {{dataCurrentUserAuth.user.full_name}} !</h2>
+    <p class="caption m-0 opacity-50">
+      Moins d’erreurs, plus de contrôle, une meilleure rentabilité !
+    </p>
+
+    <div class="mt-4 flex items-center" *ngIf="dataCurrentUserAuth.company">
+      <mat-icon class="mr-2" svgIcon="mat:home"></mat-icon>
+      <span class="body-2 cursor-pointer">L'entreprise {{dataCurrentUserAuth.company.name}}</span>
+    </div>
+
+    <div class="mt-1 flex items-center" *ngIf="dataCurrentUserAuth.user.role.name=='Owner'">
+      <mat-icon class="mr-2" svgIcon="mat:location_on"></mat-icon>
+      <span class="body-2 cursor-pointer" >Adresse Siège {{dataCurrentUserAuth.stores[0].address }}</span>
+    </div>
+
+    <div class="mt-1 flex items-center" *ngIf="dataCurrentUserAuth.user.role.name!='Owner'">
+      <mat-icon class="mr-2" svgIcon="mat:location_on"></mat-icon>
+      <span class="body-2 cursor-pointer" >Boutique affecté {{dataCurrentUserAuth.store.address }}</span>
+    </div>
+
+  </div>
+</div>

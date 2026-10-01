@@ -1,0 +1,224 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- Header -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0 gap-4">
+      <button mat-icon-button type="button" matTooltip="Retour à mes cours" (click)="retour()">
+        <mat-icon svgIcon="mat:arrow_back"></mat-icon>
+      </button>
+
+      <h2 class="display-1 font-bold m-0 flex items-center w-full">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:assignment_turned_in"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">{{ matiere }}</span>
+      </h2>
+
+      <button mat-raised-button color="primary" type="button"
+        [disabled]="!saisieOuverte" (click)="enregistrer()" class="flex-none hidden sm:inline-flex">
+        <mat-icon *ngIf="!saving" svgIcon="mat:save"
+          class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+        <mat-spinner *ngIf="saving" diameter="18" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        Enregistrer l'appel
+      </button>
+    </div>
+  </div>
+
+  <div class="container-fluid px-6">
+    <div class="mt-6 flex flex-col gap-6">
+
+      <!-- Loading -->
+      <div *ngIf="loading" class="card flex flex-col items-center justify-center gap-4 p-12">
+        <mat-spinner diameter="48"></mat-spinner>
+        <p class="m-0 text-hint">Chargement de la feuille d'appel...</p>
+      </div>
+
+      <ng-container *ngIf="!loading">
+
+        <!-- Délai de saisie dépassé -->
+        <div *ngIf="!modifiable"
+          class="card px-6 py-4 flex items-start gap-3 bg-amber-50 border border-amber-200">
+          <mat-icon svgIcon="mat:lock" class="text-amber-600 icon-sm flex-none mt-0.5"></mat-icon>
+          <p class="m-0 caption text-amber-800">
+            Cet appel est trop ancien pour être modifié.
+            <strong>Demandez au surveillant</strong> de le régulariser.
+          </p>
+        </div>
+
+        <!-- Hors période -->
+        <div *ngIf="horsPeriode"
+          class="card px-6 py-4 flex items-start gap-3 bg-amber-50 border border-amber-200">
+          <mat-icon svgIcon="mat:warning" class="text-amber-600 icon-sm flex-none mt-0.5"></mat-icon>
+          <p class="m-0 caption text-amber-800">
+            Cette date n'appartient à aucune période scolaire : l'appel sera enregistré mais
+            <strong>ne comptera pas</strong> dans les bulletins.
+          </p>
+        </div>
+
+        <div class="card">
+          <!-- Contexte du créneau -->
+          <div class="px-6 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 class="title m-0">{{ classe }}</h2>
+              <p class="m-0 caption text-hint">
+                {{ date | date: 'EEEE dd/MM/yyyy' }}
+                &bull; {{ heure(creneau?.heure_debut) }} – {{ heure(creneau?.heure_fin) }}
+                <span *ngIf="creneau?.salle">&bull; {{ creneau?.salle }}</span>
+                <span *ngIf="dejaSaisi" class="text-green-700"> &bull; appel déjà fait</span>
+              </p>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <button mat-stroked-button type="button" [disabled]="!saisieOuverte"
+                (click)="toutMarquerPresent()">
+                <mat-icon svgIcon="mat:done_all" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+                Tous présents
+              </button>
+              <button mat-stroked-button type="button" [disabled]="!saisieOuverte"
+                (click)="toutMarquerAbsent()"
+                matTooltip="Utile si la classe entière est absente">
+                <mat-icon svgIcon="mat:group_off" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+                Tous absents
+              </button>
+            </div>
+          </div>
+
+          <!-- Cours non assuré : personne n'est pénalisé -->
+          <div class="px-6 py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            [class.bg-gray-50]="coursNonAssure">
+            <div class="flex items-center gap-3">
+              <button mat-stroked-button type="button" [disabled]="!saisieOuverte"
+                [color]="coursNonAssure ? 'warn' : undefined" (click)="basculerCoursNonAssure()">
+                <mat-icon svgIcon="mat:cancel" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+                {{ coursNonAssure ? 'Cours non assuré' : 'Marquer le cours non assuré' }}
+              </button>
+              <p class="m-0 caption text-hint" *ngIf="coursNonAssure">
+                Aucune absence ne sera comptée pour ce créneau.
+              </p>
+            </div>
+
+            <mat-form-field *ngIf="coursNonAssure" appearance="outline" class="w-full sm:w-80"
+              subscriptSizing="dynamic">
+              <mat-label>Motif</mat-label>
+              <input matInput [(ngModel)]="commentaire" [disabled]="!saisieOuverte"
+                maxlength="500" placeholder="Enseignant absent, jour férié..." />
+            </mat-form-field>
+          </div>
+
+          <!-- Compteurs vivants -->
+          <div class="px-6 py-3 border-b flex items-center gap-6 flex-wrap"
+            *ngIf="!coursNonAssure && lignes.length">
+            <p class="m-0 caption">
+              <span class="text-green-700 font-semibold">{{ nbPresents }}</span>
+              <span class="text-hint"> présent(s)</span>
+            </p>
+            <p class="m-0 caption">
+              <span class="text-red-600 font-semibold">{{ nbAbsents }}</span>
+              <span class="text-hint"> absent(s)</span>
+            </p>
+            <p class="m-0 caption">
+              <span class="text-amber-700 font-semibold">{{ nbRetards }}</span>
+              <span class="text-hint"> retard(s)</span>
+            </p>
+            <p class="m-0 caption" *ngIf="nbRenvoyes">
+              <span class="text-red-700 font-semibold">{{ nbRenvoyes }}</span>
+              <span class="text-hint"> renvoyé(s)</span>
+            </p>
+          </div>
+
+          <!-- La liste des élèves -->
+          <div class="overflow-x-auto" *ngIf="lignes.length > 0 && !coursNonAssure">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b text-left text-hint caption uppercase">
+                  <th class="px-4 py-3 font-medium w-10">#</th>
+                  <th class="px-4 py-3 font-medium">Élève</th>
+                  <th class="px-4 py-3 font-medium">Matricule</th>
+                  <th class="px-4 py-3 font-medium text-center">Statut</th>
+                  <th class="px-4 py-3 font-medium text-center">Retard (min)</th>
+                  <th class="px-4 py-3 font-medium">Motif</th>
+                </tr>
+              </thead>
+
+              <tbody class="divide-y">
+                <tr *ngFor="let ligne of lignes; let i = index"
+                  class="hover:bg-gray-50 transition-colors duration-150"
+                  [class.bg-red-50]="ligne.statut === 'ABSENT' || ligne.statut === 'RENVOYE'"
+                  [class.bg-amber-50]="ligne.statut === 'RETARD'">
+
+                  <td class="px-4 py-3 text-hint caption">{{ i + 1 }}</td>
+                  <td class="px-4 py-3 body-2 font-medium">
+                    {{ ligne.nom_complet }}
+                    <mat-icon *ngIf="ligne.justifie" svgIcon="mat:check_circle"
+                      class="icon-xs text-green-600 align-middle"
+                      matTooltip="Absence déjà justifiée"></mat-icon>
+                  </td>
+                  <td class="px-4 py-3 caption text-hint">{{ ligne.matricule ?? '—' }}</td>
+
+                  <!-- Un clic sur le statut actif remet l'élève présent -->
+                  <td class="px-4 py-3">
+                    <div class="flex items-center justify-center gap-1">
+                      <button *ngFor="let s of statuts" mat-stroked-button type="button"
+                        class="!min-w-0 !px-3 !py-1"
+                        [disabled]="!saisieOuverte"
+                        [color]="ligne.statut === s.value ? 'primary' : undefined"
+                        [class.!bg-primary-600]="ligne.statut === s.value"
+                        [class.!text-white]="ligne.statut === s.value"
+                        [matTooltip]="s.label"
+                        (click)="basculer(ligne, s.value)">
+                        {{ s.value === 'ABSENT' ? 'Abs' : s.value === 'RETARD' ? 'Ret' : 'Renv' }}
+                      </button>
+                    </div>
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <mat-form-field appearance="outline" class="w-24" subscriptSizing="dynamic">
+                      <input matInput type="number" min="0" max="240"
+                        [(ngModel)]="ligne.minutes_retard"
+                        [disabled]="ligne.statut !== 'RETARD' || !saisieOuverte"
+                        placeholder="—" />
+                    </mat-form-field>
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+                      <input matInput [(ngModel)]="ligne.motif"
+                        [disabled]="ligne.statut === null || !saisieOuverte"
+                        maxlength="500" placeholder="Optionnel" />
+                    </mat-form-field>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Aucun élève inscrit -->
+          <div *ngIf="lignes.length === 0"
+            class="flex flex-col items-center justify-center gap-4 p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+              <mat-icon svgIcon="mat:person"></mat-icon>
+            </div>
+            <div>
+              <p class="m-0 body-1 font-medium">Aucun élève dans cette classe</p>
+              <p class="m-0 caption text-hint">
+                Aucune inscription validée pour l'année en cours.
+              </p>
+            </div>
+          </div>
+
+          <!-- Enregistrement (mobile et bas de page) -->
+          <div class="px-6 py-4 border-t flex justify-end" *ngIf="lignes.length > 0">
+            <button mat-raised-button color="primary" type="button"
+              [disabled]="!saisieOuverte" (click)="enregistrer()">
+              <mat-icon *ngIf="!saving" svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+              <mat-spinner *ngIf="saving" diameter="18" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+              Enregistrer l'appel
+            </button>
+          </div>
+        </div>
+
+      </ng-container>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,16 @@
+// Palette de visualisation (validée dataviz, CVD-safe). Série unique → vert.
+:host {
+  --viz-primary: #16a34a;
+  --viz-track: #e5e7eb;
+}
+
+:host-context(.vex-style-dark) {
+  --viz-primary: #16a34a;
+  --viz-track: #374151;
+}
+
+.gauge-value {
+  font-size: 8px;
+  font-weight: 700;
+  fill: currentColor;
+}

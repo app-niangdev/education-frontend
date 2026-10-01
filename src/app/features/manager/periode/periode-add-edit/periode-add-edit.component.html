@@ -1,0 +1,145 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div
+      class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:event_note"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">
+        {{ data.isEdit ? 'Modifier la période' : 'Nouvelle période' }}
+      </h2>
+      <p class="m-0 caption text-hint" *ngIf="data.annee">
+        Année scolaire {{ data.annee.nom }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <mat-dialog-content class="px-6 py-4">
+    <form [formGroup]="form" class="flex flex-col gap-4">
+
+      <!-- Libellé -->
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Libellé de la période</mat-label>
+        <mat-icon matPrefix svgIcon="mat:event_note" class="mr-2 text-hint icon-sm"></mat-icon>
+        <input matInput formControlName="libelle" placeholder="Ex: Semestre 1" />
+        <mat-error *ngIf="form.get('libelle')?.hasError('required')">
+          Le libellé est obligatoire
+        </mat-error>
+        <mat-error *ngIf="form.get('libelle')?.hasError('maxlength')">
+          Le libellé ne peut pas dépasser 100 caractères
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Type et ordre -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Type de période</mat-label>
+          <mat-select formControlName="type">
+            <mat-option *ngFor="let t of types" [value]="t.value">
+              {{ t.label }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="form.get('type')?.hasError('required')">
+            Le type est obligatoire
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Ordre dans l'année</mat-label>
+          <input matInput type="number" min="1" formControlName="ordre" />
+          <mat-hint>1 pour la première période de l'année</mat-hint>
+          <mat-error *ngIf="form.get('ordre')?.hasError('required')">
+            L'ordre est obligatoire
+          </mat-error>
+          <mat-error *ngIf="form.get('ordre')?.hasError('min')">
+            L'ordre doit être au minimum 1
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Dates de la période -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Date de début</mat-label>
+          <input matInput [matDatepicker]="startPicker" formControlName="date_debut"
+            [min]="minDate" [max]="maxDate" placeholder="Sélectionner" />
+          <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+          <mat-datepicker #startPicker></mat-datepicker>
+          <mat-error *ngIf="form.get('date_debut')?.hasError('required')">
+            La date de début est obligatoire
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Date de fin</mat-label>
+          <input matInput [matDatepicker]="endPicker" formControlName="date_fin"
+            [min]="minDate" [max]="maxDate" placeholder="Sélectionner" />
+          <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+          <mat-datepicker #endPicker></mat-datepicker>
+          <mat-error *ngIf="form.get('date_fin')?.hasError('required')">
+            La date de fin est obligatoire
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Date butoir de saisie des notes -->
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Fin de saisie des notes</mat-label>
+        <input matInput [matDatepicker]="notesPicker" formControlName="date_fin_saisie_notes"
+          [min]="minDate" placeholder="Sélectionner" />
+        <mat-datepicker-toggle matIconSuffix [for]="notesPicker"></mat-datepicker-toggle>
+        <mat-datepicker #notesPicker></mat-datepicker>
+        <mat-hint>Au-delà de cette date, les enseignants ne peuvent plus saisir les notes</mat-hint>
+        <mat-error *ngIf="form.get('date_fin_saisie_notes')?.hasError('required')">
+          La date de fin de saisie est obligatoire
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Erreurs de cohérence entre dates -->
+      <div *ngIf="finAvantDebutError || saisieAvantDebutError" class="flex flex-col gap-1">
+        <div *ngIf="finAvantDebutError" class="flex items-center gap-2 text-red-600 caption">
+          <mat-icon svgIcon="mat:error" class="icon-sm flex-none"></mat-icon>
+          La date de fin doit être postérieure à la date de début
+        </div>
+        <div *ngIf="saisieAvantDebutError" class="flex items-center gap-2 text-red-600 caption">
+          <mat-icon svgIcon="mat:error" class="icon-sm flex-none"></mat-icon>
+          La fin de saisie doit être égale ou postérieure au début de la période
+        </div>
+      </div>
+
+      <!-- Conseil -->
+      <div class="bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-start gap-3">
+        <mat-icon svgIcon="mat:lightbulb" class="text-green-600 flex-none icon-sm mt-0.5"></mat-icon>
+        <div>
+          <p class="m-0 caption font-medium text-green-800">Conseil</p>
+          <p class="m-0 caption text-green-700 mt-1">
+            Découpez l'année en deux semestres ou trois trimestres, en laissant
+            quelques jours après la fin de chaque période pour la saisie des notes.
+          </p>
+        </div>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <!-- Actions -->
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">
+      Annuler
+    </button>
+
+    <button mat-raised-button color="primary" type="button" (click)="onSubmit()"
+      [disabled]="loading || form.invalid">
+      <ng-container *ngIf="!loading">
+        <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        {{ data.isEdit ? 'Modifier' : 'Créer' }}
+      </ng-container>
+      <ng-container *ngIf="loading">
+        <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        {{ data.isEdit ? 'Modification...' : 'Création...' }}
+      </ng-container>
+    </button>
+  </mat-dialog-actions>
+</div>

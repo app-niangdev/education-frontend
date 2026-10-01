@@ -1,0 +1,170 @@
+<vex-liste-page
+  icon="mat:assignment"
+  titre="Bulletins"
+  titreCarte="Bulletins de notes"
+  sousTitre="Sélectionnez une classe et une période pour générer, publier et imprimer les bulletins"
+  [loading]="loading"
+  [vide]="bulletins().length === 0"
+  [aDesFiltres]="true"
+  [meta]="meta()"
+  [pageSizeOptions]="meta().pageSizeOptions ?? [5, 10, 25, 50]"
+  (pageChange)="onPageChange($event)">
+
+  <!-- Actions en-tête -->
+  <button entete *ngIf="!lectureSeule" color="primary" mat-raised-button type="button"
+    [disabled]="!contexteChoisi || generating" (click)="genererBulletins()"
+    class="hidden sm:inline-flex"
+    [matTooltip]="contexteChoisi ? '' : 'Choisissez une classe et une période'">
+    <mat-icon *ngIf="!generating" svgIcon="mat:autorenew" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    <mat-spinner *ngIf="generating" diameter="18" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+    {{ bulletins().length ? 'Recalculer' : 'Générer' }}
+  </button>
+  <button entete mat-stroked-button color="primary" type="button"
+    [disabled]="!contexteChoisi || !bulletins().length || downloadingClasse"
+    (click)="telechargerPdfClasse()" class="hidden sm:inline-flex">
+    <mat-icon *ngIf="!downloadingClasse" svgIcon="mat:description" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    <mat-spinner *ngIf="downloadingClasse" diameter="18" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+    PDF de la classe
+  </button>
+
+  <!-- Filtres (la recherche vient toujours en premier) -->
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-60" subscriptSizing="dynamic">
+    <mat-label>Rechercher</mat-label>
+    <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput [formControl]="searchCtrl" placeholder="Nom, prénom ou matricule" />
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-48" subscriptSizing="dynamic">
+    <mat-label>Classe</mat-label>
+    <mat-select [formControl]="classeCtrl">
+      <mat-option [value]="null">Toutes les classes</mat-option>
+      <mat-option *ngFor="let c of classes" [value]="c.id">{{ c.nom }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-44" subscriptSizing="dynamic">
+    <mat-label>Période</mat-label>
+    <mat-select [formControl]="periodeCtrl">
+      <mat-option [value]="null">Toutes les périodes</mat-option>
+      <mat-option *ngFor="let p of periodes" [value]="p.id">{{ p.libelle }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-40" subscriptSizing="dynamic">
+    <mat-label>Statut</mat-label>
+    <mat-select [formControl]="statutCtrl">
+      <mat-option [value]="null">Tous les statuts</mat-option>
+      <mat-option *ngFor="let s of statuts" [value]="s.value">{{ s.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <!-- Bandeau : notes encore modifiables -->
+  <div avantListe *ngIf="saisieEncoreOuverte"
+    class="px-6 py-3 bg-amber-50 border-b border-amber-200 flex items-start gap-3">
+    <mat-icon svgIcon="mat:warning" class="text-amber-600 icon-sm flex-none mt-0.5"></mat-icon>
+    <p class="m-0 caption text-amber-800">
+      La saisie des notes est encore ouverte pour cette période : ces bulletins sont
+      <strong>provisoires</strong>. Recalculez-les après la date limite de saisie avant de les publier.
+    </p>
+  </div>
+
+  <!-- Actions de publication -->
+  <div avantListe *ngIf="!lectureSeule && contexteChoisi && bulletins().length"
+    class="px-6 py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <p class="m-0 caption text-hint">
+      <strong>{{ nomClasseChoisie }}</strong> &bull; {{ nomPeriodeChoisie }}
+      &bull; {{ meta().total }} bulletin(s)
+    </p>
+    <div class="flex items-center gap-3">
+      <button *ngIf="contientBrouillons" mat-stroked-button color="primary" type="button"
+        [disabled]="publishing" (click)="publierClasse()">
+        <mat-icon svgIcon="mat:assignment_turned_in" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Publier la classe
+      </button>
+      <button *ngIf="contientPublies" mat-stroked-button color="warn" type="button"
+        [disabled]="publishing" (click)="depublierClasse()">
+        <mat-icon svgIcon="mat:lock" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Dépublier
+      </button>
+    </div>
+  </div>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let bulletin of bulletins()">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+      <mat-icon svgIcon="mat:assignment" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">
+        {{ bulletin.eleve_prenom }} {{ bulletin.eleve_nom }}
+      </p>
+      <p class="m-0 caption text-hint">
+        {{ bulletin.eleve_matricule ?? '—' }}
+        &bull; {{ bulletin.classe_nom }}
+        &bull; {{ bulletin.periode?.libelle ?? '—' }}
+      </p>
+    </div>
+
+    <!-- Moyenne / rang + statut à droite -->
+    <span secondaire class="caption">
+      Moyenne :
+      <span class="font-bold"
+        [class.text-green-600]="+(bulletin.moyenne_generale ?? 0) >= 10"
+        [class.text-red-600]="bulletin.moyenne_generale !== null && +bulletin.moyenne_generale < 10">
+        {{ format(bulletin.moyenne_generale) }}/20
+      </span>
+      &bull; Rang :
+      <span class="font-bold">
+        {{ bulletin.rang ?? '—' }}<span *ngIf="bulletin.rang_ex_aequo" class="text-hint"> ex æquo</span>
+      </span>
+    </span>
+    <span badge class="px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="statutClass(bulletin.statut)">
+      {{ bulletin.statut_libelle }}
+    </span>
+
+    <button actions mat-icon-button type="button" matTooltip="Voir le détail" (click)="voirDetail(bulletin)">
+      <mat-icon svgIcon="mat:visibility" class="icon-sm"></mat-icon>
+    </button>
+    <button actions mat-icon-button type="button" matTooltip="Télécharger le PDF"
+      [disabled]="downloadingId !== null" (click)="telechargerPdf(bulletin)">
+      <mat-icon *ngIf="downloadingId !== bulletin.id" svgIcon="mat:description" class="icon-sm"></mat-icon>
+      <mat-spinner *ngIf="downloadingId === bulletin.id" diameter="18"></mat-spinner>
+    </button>
+  </vex-liste-ligne>
+
+  <!-- États vides -->
+  <div etatVide>
+    <div *ngIf="filtreActif; else aucunBulletin"
+      class="flex flex-col items-center justify-center gap-4 p-12 text-center">
+      <mat-icon svgIcon="mat:search" class="text-hint icon-2xl"></mat-icon>
+      <div>
+        <p class="m-0 body-1 font-medium">Aucun bulletin ne correspond à votre recherche</p>
+        <p class="m-0 caption text-hint" *ngIf="contexteChoisi && !lectureSeule">
+          Les bulletins de cette classe n'ont peut-être pas encore été générés.
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button mat-stroked-button color="primary" type="button" (click)="reinitialiserFiltres()">
+          Réinitialiser les filtres
+        </button>
+        <button *ngIf="!lectureSeule && contexteChoisi" mat-raised-button color="primary" type="button"
+          [disabled]="generating" (click)="genererBulletins()">
+          <mat-icon svgIcon="mat:autorenew" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+          Générer les bulletins
+        </button>
+      </div>
+    </div>
+
+    <ng-template #aucunBulletin>
+      <div class="flex flex-col items-center justify-center gap-4 p-12 text-center">
+        <mat-icon svgIcon="mat:assignment" class="text-hint icon-2xl"></mat-icon>
+        <div>
+          <p class="m-0 body-1 font-medium">Aucun bulletin pour le moment</p>
+          <p class="m-0 caption text-hint">
+            Choisissez une classe et une période, puis générez les bulletins à partir des notes saisies.
+          </p>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+</vex-liste-page>

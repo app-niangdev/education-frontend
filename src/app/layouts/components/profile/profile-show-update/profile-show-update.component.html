@@ -1,0 +1,283 @@
+<!-- ══════════ MODE AFFICHAGE ══════════ -->
+<ng-container *ngIf="userConnect && !isEditMode">
+  <div class="profile-grid">
+
+    <!-- ── Carte identité ── -->
+    <div class="pcard pcard--main">
+      <div class="pcard__header">
+        <div class="pcard__title-wrap">
+          <mat-icon class="pcard__title-icon" svgIcon="mat:person"></mat-icon>
+          <h3 class="pcard__title">Identité</h3>
+        </div>
+        <span class="pcard__badge" [class.pcard__badge--active]="userConnect.status">
+          {{ userConnect.status ? 'Actif' : 'Inactif' }}
+        </span>
+      </div>
+
+      <ul class="info-list">
+        <li class="info-item" @fadeInRight>
+          <span class="text-hint text-xs font-medium">Prénom</span>
+          <span class="text-default text-sm font-semibold">{{ userConnect.first_name || '—' }}</span>
+        </li>
+        <li class="info-item" @fadeInRight>
+          <span class="text-hint text-xs font-medium">Nom</span>
+          <span class="text-default text-sm font-semibold">{{ userConnect.last_name || '—' }}</span>
+        </li>
+        <li class="info-item" @fadeInRight>
+          <span class="text-hint text-xs font-medium">Email</span>
+          <span class="text-default text-sm font-semibold">{{ userConnect.email || '—' }}</span>
+        </li>
+        <li class="info-item" @fadeInRight>
+          <span class="text-hint text-xs font-medium">Rôle</span>
+          <span class="pcard__badge pcard__badge--role">{{ roleLabel }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- ── Carte contacts ── -->
+    <div class="pcard pcard--side">
+      <div class="pcard__header">
+        <div class="pcard__title-wrap">
+          <mat-icon class="pcard__title-icon" svgIcon="mat:contacts"></mat-icon>
+          <h3 class="pcard__title">Contacts</h3>
+        </div>
+        <button (click)="ouvrirEdition()" color="primary" mat-icon-button matTooltip="Modifier mes informations" type="button">
+          <mat-icon svgIcon="mat:edit"></mat-icon>
+        </button>
+      </div>
+
+      <ul class="info-list">
+        <li class="info-item info-item--icon" @fadeInRight>
+          <mat-icon class="info-item__icon" svgIcon="mat:phone"></mat-icon>
+          <div>
+            <span class="text-default text-sm font-semibold block">{{ userConnect.phone_number_one || '—' }}</span>
+            <span class="text-hint text-xs block">Téléphone principal</span>
+          </div>
+        </li>
+        <li *ngIf="userConnect.phone_number_two" class="info-item info-item--icon" @fadeInRight>
+          <mat-icon class="info-item__icon" svgIcon="mat:phone"></mat-icon>
+          <div>
+            <span class="text-default text-sm font-semibold block">{{ userConnect.phone_number_two }}</span>
+            <span class="text-hint text-xs block">Téléphone secondaire</span>
+          </div>
+        </li>
+        <li class="info-item info-item--icon" @fadeInRight>
+          <mat-icon class="info-item__icon" svgIcon="mat:location_on"></mat-icon>
+          <div>
+            <span class="text-default text-sm font-semibold block">{{ userConnect.address || '—' }}</span>
+            <span class="text-hint text-xs block">Adresse</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- ── Carte profil métier (staff uniquement) ── -->
+    <div *ngIf="isStaff && userConnect.profil" class="pcard pcard--full">
+      <div class="pcard__header">
+        <div class="pcard__title-wrap">
+          <mat-icon class="pcard__title-icon" svgIcon="mat:work"></mat-icon>
+          <h3 class="pcard__title">Informations du poste</h3>
+        </div>
+      </div>
+
+      <div class="profil-grid">
+        <div *ngIf="userConnect.profil.matricule" class="profil-item" @fadeInRight>
+          <mat-icon svgIcon="mat:assignment" class="info-item__icon"></mat-icon>
+          <div>
+            <span class="text-default text-sm font-semibold block">{{ userConnect.profil.matricule }}</span>
+            <span class="text-hint text-xs block">Matricule</span>
+          </div>
+        </div>
+        <div *ngIf="userConnect.profil.type_contrat" class="profil-item" @fadeInRight>
+          <mat-icon svgIcon="mat:description" class="info-item__icon"></mat-icon>
+          <div>
+            <span class="text-default text-sm font-semibold block">{{ translateContrat(userConnect.profil.type_contrat) }}</span>
+            <span class="text-hint text-xs block">Type de contrat</span>
+          </div>
+        </div>
+        <div *ngIf="userConnect.profil.date_embauche" class="profil-item" @fadeInRight>
+          <mat-icon svgIcon="mat:calendar_today" class="info-item__icon"></mat-icon>
+          <div>
+            <span class="text-default text-sm font-semibold block">{{ userConnect.profil.date_embauche }}</span>
+            <span class="text-hint text-xs block">Date d'embauche</span>
+          </div>
+        </div>
+
+        <ng-container *ngIf="isTeacher">
+          <div *ngIf="userConnect.profil.matieres?.length" class="profil-item" @fadeInRight>
+            <mat-icon svgIcon="mat:school" class="info-item__icon"></mat-icon>
+            <div>
+              <span class="text-default text-sm font-semibold block">
+                {{ specialitesLabel }}
+              </span>
+              <span class="text-hint text-xs block">Matières de spécialité</span>
+            </div>
+          </div>
+          <div *ngIf="userConnect.profil.diplomes" class="profil-item profil-item--wide" @fadeInRight>
+            <mat-icon svgIcon="mat:grade" class="info-item__icon"></mat-icon>
+            <div>
+              <span class="text-default text-sm font-semibold block">{{ userConnect.profil.diplomes }}</span>
+              <span class="text-hint text-xs block">Diplômes</span>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="isSupervisor">
+          <div *ngIf="userConnect.profil.zone_surveillance" class="profil-item" @fadeInRight>
+            <mat-icon svgIcon="mat:visibility" class="info-item__icon"></mat-icon>
+            <div>
+              <span class="text-default text-sm font-semibold block">{{ userConnect.profil.zone_surveillance }}</span>
+              <span class="text-hint text-xs block">Zone de surveillance</span>
+            </div>
+          </div>
+          <div *ngIf="userConnect.profil.horaire" class="profil-item" @fadeInRight>
+            <mat-icon svgIcon="mat:access_time" class="info-item__icon"></mat-icon>
+            <div>
+              <span class="text-default text-sm font-semibold block">{{ userConnect.profil.horaire }}</span>
+              <span class="text-hint text-xs block">Horaire</span>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="isTreasurer">
+          <div *ngIf="userConnect.profil.banque" class="profil-item" @fadeInRight>
+            <mat-icon svgIcon="mat:business" class="info-item__icon"></mat-icon>
+            <div>
+              <span class="text-default text-sm font-semibold block">{{ userConnect.profil.banque }}</span>
+              <span class="text-hint text-xs block">Banque</span>
+            </div>
+          </div>
+          <div *ngIf="userConnect.profil.numero_compte_bancaire" class="profil-item" @fadeInRight>
+            <mat-icon svgIcon="mat:receipt" class="info-item__icon"></mat-icon>
+            <div>
+              <span class="text-default text-sm font-semibold block">{{ userConnect.profil.numero_compte_bancaire }}</span>
+              <span class="text-hint text-xs block">N° de compte</span>
+            </div>
+          </div>
+          <div class="profil-item" @fadeInRight>
+            <mat-icon svgIcon="mat:verified_user" class="info-item__icon"></mat-icon>
+            <div>
+              <span class="pcard__badge block" [class.pcard__badge--active]="userConnect.profil.acces_caisse">
+                {{ userConnect.profil.acces_caisse ? 'Autorisé' : 'Non autorisé' }}
+              </span>
+              <span class="text-hint text-xs block mt-1">Accès caisse</span>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+
+  </div>
+</ng-container>
+
+
+<!-- ══════════ MODE ÉDITION ══════════ -->
+<div *ngIf="userConnect && isEditMode && form" class="pcard pcard--form">
+
+  <div class="pcard__header">
+    <div class="pcard__title-wrap">
+      <mat-icon class="pcard__title-icon" svgIcon="mat:edit"></mat-icon>
+      <h3 class="pcard__title">Modifier mes informations</h3>
+    </div>
+    <button [disabled]="isSubmitting" (click)="annuler()" mat-icon-button matTooltip="Annuler" type="button">
+      <mat-icon svgIcon="mat:close"></mat-icon>
+    </button>
+  </div>
+
+  <!-- `ngSubmit` : la touche Entrée enregistre, comme dans tout formulaire. -->
+  <form [formGroup]="form" (ngSubmit)="save()" class="form-body">
+
+    <div class="form-photo">
+      <vex-upload-file
+        [defaultImageUrl]="userConnect.image_url ?? null"
+        [defaultImageName]="'Photo de profil'"
+        (fileUploaded)="onFileUpload($event)"
+        (fileRemoved)="onFileRemove()">
+      </vex-upload-file>
+      <p class="field__hint">JPG, PNG ou WEBP — 2 Mo maximum.</p>
+    </div>
+
+    <div class="form-fields">
+      <div class="field">
+        <label class="field__label" for="first_name">
+          Prénom <span class="text-red-500">*</span>
+        </label>
+        <input id="first_name" type="text" formControlName="first_name" class="field__input"
+          placeholder="Votre prénom" autocomplete="given-name">
+        <ng-container *ngIf="form.controls['first_name'].invalid && form.controls['first_name'].touched">
+          <p *ngIf="form.controls['first_name'].errors?.['required']" class="field__error">Obligatoire.</p>
+          <p *ngIf="form.controls['first_name'].errors?.['maxlength']" class="field__error">Maximum 100 caractères.</p>
+          <p *ngIf="form.controls['first_name'].errors?.['serveur']" class="field__error">
+            {{ form.controls['first_name'].errors?.['serveur'] }}
+          </p>
+        </ng-container>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="last_name">
+          Nom <span class="text-red-500">*</span>
+        </label>
+        <input id="last_name" type="text" formControlName="last_name" class="field__input"
+          placeholder="Votre nom" autocomplete="family-name">
+        <ng-container *ngIf="form.controls['last_name'].invalid && form.controls['last_name'].touched">
+          <p *ngIf="form.controls['last_name'].errors?.['required']" class="field__error">Obligatoire.</p>
+          <p *ngIf="form.controls['last_name'].errors?.['maxlength']" class="field__error">Maximum 100 caractères.</p>
+          <p *ngIf="form.controls['last_name'].errors?.['serveur']" class="field__error">
+            {{ form.controls['last_name'].errors?.['serveur'] }}
+          </p>
+        </ng-container>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="phone_number_one">
+          Téléphone principal <span class="text-red-500">*</span>
+        </label>
+        <input id="phone_number_one" type="tel" formControlName="phone_number_one" class="field__input"
+          placeholder="+221 XX XXX XX XX" autocomplete="tel">
+        <ng-container *ngIf="form.controls['phone_number_one'].invalid && form.controls['phone_number_one'].touched">
+          <p *ngIf="form.controls['phone_number_one'].errors?.['required']" class="field__error">Obligatoire.</p>
+          <p *ngIf="form.controls['phone_number_one'].errors?.['minlength']" class="field__error">Minimum 9 caractères.</p>
+          <p *ngIf="form.controls['phone_number_one'].errors?.['maxlength']" class="field__error">Maximum 20 caractères.</p>
+          <!-- Message renvoyé par le serveur : numéro déjà rattaché à un autre compte. -->
+          <p *ngIf="form.controls['phone_number_one'].errors?.['serveur']" class="field__error">
+            {{ form.controls['phone_number_one'].errors?.['serveur'] }}
+          </p>
+        </ng-container>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="phone_number_two">Téléphone secondaire</label>
+        <input id="phone_number_two" type="tel" formControlName="phone_number_two" class="field__input"
+          placeholder="+221 XX XXX XX XX" autocomplete="tel">
+        <ng-container *ngIf="form.controls['phone_number_two'].invalid && form.controls['phone_number_two'].touched">
+          <p *ngIf="form.controls['phone_number_two'].errors?.['minlength']" class="field__error">Minimum 9 caractères.</p>
+          <p *ngIf="form.controls['phone_number_two'].errors?.['maxlength']" class="field__error">Maximum 20 caractères.</p>
+          <p *ngIf="form.controls['phone_number_two'].errors?.['serveur']" class="field__error">
+            {{ form.controls['phone_number_two'].errors?.['serveur'] }}
+          </p>
+        </ng-container>
+      </div>
+
+      <div class="field field--full">
+        <label class="field__label" for="address">Adresse</label>
+        <input id="address" type="text" formControlName="address" class="field__input" placeholder="Votre adresse"
+          autocomplete="street-address">
+        <ng-container *ngIf="form.controls['address'].invalid && form.controls['address'].touched">
+          <p *ngIf="form.controls['address'].errors?.['maxlength']" class="field__error">Maximum 255 caractères.</p>
+          <p *ngIf="form.controls['address'].errors?.['serveur']" class="field__error">
+            {{ form.controls['address'].errors?.['serveur'] }}
+          </p>
+        </ng-container>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button [disabled]="isSubmitting" (click)="annuler()" mat-stroked-button type="button">Annuler</button>
+      <button [disabled]="isSubmitting || rienAEnregistrer" color="primary" mat-flat-button type="submit">
+        <mat-icon *ngIf="isSubmitting" class="animate-spin" svgIcon="mat:autorenew"></mat-icon>
+        {{ isSubmitting ? 'Enregistrement...' : 'Enregistrer' }}
+      </button>
+    </div>
+  </form>
+
+</div>

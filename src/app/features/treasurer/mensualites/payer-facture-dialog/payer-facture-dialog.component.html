@@ -1,0 +1,265 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div
+      class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:receipt"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">Régler plusieurs mois</h2>
+      <p class="m-0 caption text-hint">
+        {{ inscription.eleve?.nom_complet }} — {{ inscription.numero_inscription }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Étape 2 : facture émise, un seul justificatif à imprimer -->
+  <ng-container *ngIf="facture">
+    <mat-dialog-content class="px-6 py-4">
+      <div class="flex flex-col items-center text-center gap-2 pt-2 pb-4">
+        <div class="w-16 h-16 rounded-full bg-green-100 text-green-700 flex items-center justify-center">
+          <mat-icon svgIcon="mat:check_circle" class="icon-lg"></mat-icon>
+        </div>
+        <h3 class="title m-0">Facture enregistrée</h3>
+        <p class="m-0 caption text-hint">
+          {{ facture.nombre_mois ?? apercu().length }} mois réglés sur une seule facture —
+          un justificatif unique à imprimer.
+        </p>
+      </div>
+
+      <div class="px-4 py-4 rounded bg-gray-50 border">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="m-0 caption text-hint">N° de facture</p>
+            <p class="m-0 title font-semibold text-primary-600">{{ facture.numero_facture }}</p>
+          </div>
+          <div class="text-right">
+            <p class="m-0 caption text-hint">Montant total</p>
+            <p class="m-0 title font-semibold">{{ facture.montant_total | number }} FCFA</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Détail des mois couverts -->
+      <div class="divide-y border rounded mt-4">
+        <div *ngFor="let l of apercu()" class="px-4 py-2.5 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full flex-none flex items-center justify-center"
+              [ngClass]="l.soldeApres ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'">
+              <mat-icon [svgIcon]="l.soldeApres ? 'mat:check_circle' : 'mat:schedule'" class="icon-sm"></mat-icon>
+            </div>
+            <div>
+              <p class="m-0 body-2 font-medium">{{ l.libelle }}</p>
+              <p class="m-0 caption" [ngClass]="l.soldeApres ? 'text-green-700' : 'text-amber-700'">
+                {{ l.soldeApres ? 'Soldé' : 'Avance partielle' }}
+              </p>
+            </div>
+          </div>
+          <p class="m-0 body-2 font-medium">{{ l.impute | number }} FCFA</p>
+        </div>
+      </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+      <button mat-stroked-button type="button" (click)="imprimerFacture()" [disabled]="downloading">
+        <ng-container *ngIf="!downloading">
+          <mat-icon svgIcon="mat:description" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+          Imprimer la facture
+        </ng-container>
+        <ng-container *ngIf="downloading">
+          <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+          Génération...
+        </ng-container>
+      </button>
+
+      <button mat-raised-button color="primary" type="button" (click)="terminer()" [disabled]="downloading">
+        Terminer
+      </button>
+    </mat-dialog-actions>
+  </ng-container>
+
+  <!-- Étape 1 : saisie -->
+  <ng-container *ngIf="!facture">
+    <mat-dialog-content class="px-6 py-4">
+
+      <!-- Rappel du reste dû -->
+      <div class="px-4 py-3 rounded bg-gray-50 border mb-4 flex items-center justify-between gap-4">
+        <div>
+          <p class="m-0 caption text-hint">Reste total à payer sur l'année</p>
+          <p class="m-0 title font-semibold text-primary-600">{{ resteTotal | number }} FCFA</p>
+        </div>
+        <div class="text-right">
+          <p class="m-0 caption text-hint">Mois non soldés</p>
+          <p class="m-0 title font-semibold">{{ moisAPayer.length }}</p>
+        </div>
+      </div>
+
+      <!-- Choix du mode de répartition -->
+      <mat-button-toggle-group class="w-full mb-4" [value]="mode()"
+        (change)="changerMode($event.value)">
+        <mat-button-toggle value="AUTOMATIQUE" class="flex-auto">
+          <mat-icon svgIcon="mat:done_all" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+          Montant global
+        </mat-button-toggle>
+        <mat-button-toggle value="SELECTION" class="flex-auto">
+          <mat-icon svgIcon="mat:assignment_turned_in" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+          Choisir les mois
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <form [formGroup]="form" class="flex flex-col gap-4">
+
+        <!-- Mode automatique : un seul montant, réparti en cascade -->
+        <ng-container *ngIf="mode() === 'AUTOMATIQUE'">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Montant reçu</mat-label>
+            <mat-icon matPrefix svgIcon="mat:receipt" class="mr-2 text-hint icon-sm"></mat-icon>
+            <input matInput type="number" formControlName="montant" [max]="resteTotal" min="1" />
+            <span matSuffix class="text-hint mr-3">FCFA</span>
+            <mat-hint>Réparti automatiquement des mois les plus anciens aux plus récents</mat-hint>
+            <mat-error *ngIf="form.get('montant')?.hasError('required')">
+              Le montant est obligatoire
+            </mat-error>
+            <mat-error *ngIf="form.get('montant')?.hasError('min')">
+              Le montant doit être d'au moins 1 FCFA
+            </mat-error>
+            <mat-error *ngIf="form.get('montant')?.hasError('max')">
+              Le montant ne peut pas dépasser le reste total ({{ resteTotal | number }} FCFA)
+            </mat-error>
+          </mat-form-field>
+        </ng-container>
+
+        <!-- Mode sélection : cases à cocher, montant ajustable par mois -->
+        <ng-container *ngIf="mode() === 'SELECTION'">
+          <div class="flex items-center justify-between">
+            <p class="m-0 caption text-hint">Cochez les mois à régler</p>
+            <div class="flex gap-2">
+              <button mat-button type="button" (click)="toutCocher()">Tout cocher</button>
+              <button mat-button type="button" (click)="toutDecocher()">Tout décocher</button>
+            </div>
+          </div>
+
+          <div class="divide-y border rounded max-h-72 overflow-y-auto">
+            <div *ngFor="let m of moisAPayer" class="px-4 py-2.5 flex items-center gap-3">
+              <mat-checkbox [checked]="estCoche(m)"
+                (change)="basculerMois(m, $event.checked)"
+                class="flex-none"></mat-checkbox>
+
+              <div class="flex-auto">
+                <p class="m-0 body-2 font-medium">{{ libelle(m) }}</p>
+                <p class="m-0 caption text-hint">
+                  Reste dû : {{ resteDe(m) | number }} FCFA
+                  <span *ngIf="(m.total_paye ?? 0) > 0">
+                    &bull; déjà versé {{ m.total_paye | number }} FCFA
+                  </span>
+                </p>
+              </div>
+
+              <mat-form-field appearance="outline" class="flex-none w-36 dense-form-field"
+                *ngIf="estCoche(m)">
+                <input matInput type="number" [value]="montantDe(m)" min="1" [max]="resteDe(m)"
+                  (input)="changerMontant(m, $any($event.target).value)" />
+                <span matSuffix class="text-hint mr-2 caption">FCFA</span>
+              </mat-form-field>
+            </div>
+          </div>
+        </ng-container>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Mode de paiement</mat-label>
+            <mat-icon matPrefix svgIcon="mat:shopping_bag" class="mr-2 text-hint icon-sm"></mat-icon>
+            <mat-select formControlName="mode_paiement">
+              <mat-option *ngFor="let m of modesPaiement" [value]="m.value">{{ m.label }}</mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('mode_paiement')?.hasError('required')">
+              Le mode de paiement est obligatoire
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Date du paiement</mat-label>
+            <input matInput [matDatepicker]="picker" [max]="maxDate" formControlName="date_paiement" />
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+            <mat-hint>Par défaut, aujourd'hui</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>N° de transaction (optionnel)</mat-label>
+          <input matInput formControlName="numero_transaction" placeholder="Réf. Wave, Orange Money..." />
+        </mat-form-field>
+
+        <!-- Aperçu : ce que la facture contiendra -->
+        <div class="border rounded overflow-hidden" *ngIf="apercu().length > 0">
+          <div class="px-4 py-2 bg-gray-50 border-b flex items-center justify-between">
+            <p class="m-0 caption font-medium text-hint uppercase">Aperçu de la facture</p>
+            <p class="m-0 body-2 font-semibold text-primary-600">
+              {{ totalFacture() | number }} FCFA
+            </p>
+          </div>
+
+          <div class="divide-y">
+            <div *ngFor="let l of apercu()" class="px-4 py-2 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <mat-icon [svgIcon]="l.soldeApres ? 'mat:check_circle' : 'mat:schedule'"
+                  class="icon-sm flex-none"
+                  [ngClass]="l.soldeApres ? 'text-green-600' : 'text-amber-600'"></mat-icon>
+                <span class="body-2">{{ l.libelle }}</span>
+                <span class="caption px-1.5 py-0.5 rounded"
+                  [ngClass]="l.soldeApres ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'">
+                  {{ l.soldeApres ? 'soldé' : 'avance' }}
+                </span>
+              </div>
+              <span class="body-2 font-medium">{{ l.impute | number }} FCFA</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Explication en clair de la répartition -->
+        <div class="flex items-start gap-3 px-4 py-3 rounded"
+          [ngClass]="resteApres() <= 0 ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'">
+          <mat-icon [svgIcon]="resteApres() <= 0 ? 'mat:check_circle' : 'mat:info'"
+            class="icon-sm flex-none mt-0.5"
+            [ngClass]="resteApres() <= 0 ? 'text-green-600' : 'text-blue-600'"></mat-icon>
+
+          <p class="m-0 caption" [ngClass]="resteApres() <= 0 ? 'text-green-800' : 'text-blue-800'">
+            <ng-container *ngIf="totalFacture() <= 0">
+              Saisissez un montant ou cochez au moins un mois pour créer la facture.
+            </ng-container>
+
+            <ng-container *ngIf="totalFacture() > 0">
+              <strong>{{ nbMoisSoldes() }} mois</strong> entièrement soldé(s)<ng-container
+                *ngIf="ligneAvance()">, plus une avance de
+                <strong>{{ ligneAvance()!.impute | number }} FCFA</strong> sur
+                {{ ligneAvance()!.libelle }}</ng-container>.
+              <ng-container *ngIf="resteApres() > 0">
+                Il restera <strong>{{ resteApres() | number }} FCFA</strong> à payer sur l'année.
+              </ng-container>
+              <ng-container *ngIf="resteApres() <= 0">
+                Toutes les mensualités de l'élève seront soldées.
+              </ng-container>
+            </ng-container>
+          </p>
+        </div>
+
+      </form>
+    </mat-dialog-content>
+
+    <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+      <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">Annuler</button>
+
+      <button mat-raised-button color="primary" type="button" (click)="onSubmit()" [disabled]="!peutValider">
+        <ng-container *ngIf="!loading">
+          <mat-icon svgIcon="mat:check_circle" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+          Encaisser {{ totalFacture() > 0 ? (totalFacture() | number) + ' FCFA' : '' }}
+        </ng-container>
+        <ng-container *ngIf="loading">
+          <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+          Encaissement...
+        </ng-container>
+      </button>
+    </mat-dialog-actions>
+  </ng-container>
+</div>

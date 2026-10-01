@@ -1,0 +1,41 @@
+<div class="dropdown">
+  <div class="dropdown-header flex items-center justify-between">
+    <div class="flex items-center">
+      <div class="dropdown-heading-icon flex items-center justify-center">
+        <mat-icon svgIcon="mat:person"></mat-icon>
+      </div>
+      <div class="dropdown-heading">
+        {{userConnect?.email}}
+      </div>
+    </div>
+
+    <button mat-icon-button matTooltip="Settings" matTooltipPosition="before" type="button">
+      <mat-icon class="notifications-header-icon" svgIcon="mat:settings"></mat-icon>
+    </button>
+  </div>
+
+  <div class="dropdown-content">
+    <a (click)="close()" *ngFor="let item of items; trackBy: trackById" [routerLink]="item.route"
+      class="notification flex items-center" matRipple>
+      <mat-icon [ngClass]="item.colorClass" [svgIcon]="item.icon" class="notification-icon flex-none"></mat-icon>
+      <div class="flex-auto">
+        <div class="notification-label">{{ item.label }}</div>
+        <div class="notification-description">{{ item.description }}</div>
+      </div>
+      <mat-icon class="notification-chevron flex-none" svgIcon="mat:chevron_right"></mat-icon>
+    </a>
+  </div>
+
+  <div class="dropdown-footer flex items-center justify-between">
+    <button class="dropdown-footer-select" mat-button type="button">
+      <ng-container>
+        <span>
+          <mat-icon [ngClass]="'text-green-600'" [svgIcon]="'mat:check_circle'"></mat-icon>
+          <span>En Ligne</span>
+          <mat-icon class="dropdown-footer-select-caret" svgIcon="mat:arrow_drop_down"></mat-icon>
+        </span>
+      </ng-container>
+    </button>
+    <a (click)="logout()" [routerLink]="['/login']" color="warn" mat-raised-button>Deconnexion</a>
+  </div>
+</div>

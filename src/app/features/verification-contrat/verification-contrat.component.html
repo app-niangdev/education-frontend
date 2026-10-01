@@ -1,0 +1,161 @@
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-10 px-4">
+  <div class="max-w-2xl mx-auto">
+
+    <!-- ── Chargement ── -->
+    <div *ngIf="loading" class="flex flex-col items-center justify-center py-24">
+      <mat-spinner diameter="44"></mat-spinner>
+      <p class="mt-5 text-gray-500 dark:text-gray-400">
+        Vérification du document en cours…
+      </p>
+    </div>
+
+    <ng-container *ngIf="!loading">
+
+      <!-- ── Contrat authentique ── -->
+      <div *ngIf="authentique && contrat"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+
+        <!-- La bannière tranche d'un coup d'œil : vert si le contrat lie encore
+             les parties, ambre s'il est authentique mais arrivé à son terme. -->
+        <div class="px-6 py-5 text-white"
+          [ngClass]="enVigueur ? 'bg-green-600' : 'bg-amber-600'">
+          <div class="flex items-center gap-3">
+            <mat-icon class="flex-none"
+              [svgIcon]="enVigueur ? 'mat:check_circle' : 'mat:info'"
+              style="font-size: 34px; width: 34px; height: 34px;"></mat-icon>
+            <div>
+              <h1 class="text-xl font-bold m-0">Document authentique</h1>
+              <p class="text-sm opacity-90 m-0 mt-0.5">
+                {{ enVigueur
+                    ? 'Ce contrat est enregistré et en vigueur.'
+                    : 'Ce contrat est enregistré, mais n’est plus en vigueur.' }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6">
+
+          <p class="text-sm text-gray-600 dark:text-gray-300 mb-5">
+            Le document présenté correspond bien à un contrat de travail
+            enregistré par
+            <span class="font-semibold">{{ contrat.etablissement ?? 'l’établissement' }}</span>.
+          </p>
+
+          <!-- Le détail : strictement ce que le serveur confie à une page
+               publique — aucune rémunération n'y figure. -->
+          <dl class="divide-y divide-gray-200 dark:divide-gray-700">
+
+            <div class="flex gap-4 py-3">
+              <dt class="w-40 flex-none text-sm text-gray-500 dark:text-gray-400">N° de contrat</dt>
+              <dd class="text-sm font-semibold text-gray-900 dark:text-gray-100 m-0">
+                {{ contrat.numero_contrat }}
+              </dd>
+            </div>
+
+            <div class="flex gap-4 py-3">
+              <dt class="w-40 flex-none text-sm text-gray-500 dark:text-gray-400">Employé</dt>
+              <dd class="text-sm font-medium text-gray-900 dark:text-gray-100 m-0">
+                {{ contrat.employe ?? '—' }}
+                <span *ngIf="contrat.matricule"
+                  class="text-gray-500 dark:text-gray-400 font-normal">
+                  ({{ contrat.matricule }})
+                </span>
+              </dd>
+            </div>
+
+            <div class="flex gap-4 py-3">
+              <dt class="w-40 flex-none text-sm text-gray-500 dark:text-gray-400">Fonction</dt>
+              <dd class="text-sm text-gray-900 dark:text-gray-100 m-0">
+                {{ contrat.fonction ?? '—' }}
+              </dd>
+            </div>
+
+            <div class="flex gap-4 py-3">
+              <dt class="w-40 flex-none text-sm text-gray-500 dark:text-gray-400">Nature du contrat</dt>
+              <dd class="text-sm text-gray-900 dark:text-gray-100 m-0">
+                {{ contrat.type_contrat ?? '—' }}
+              </dd>
+            </div>
+
+            <div class="flex gap-4 py-3">
+              <dt class="w-40 flex-none text-sm text-gray-500 dark:text-gray-400">Période</dt>
+              <dd class="text-sm text-gray-900 dark:text-gray-100 m-0">{{ periode }}</dd>
+            </div>
+
+            <div *ngIf="contrat.lieu_travail" class="flex gap-4 py-3">
+              <dt class="w-40 flex-none text-sm text-gray-500 dark:text-gray-400">Lieu de travail</dt>
+              <dd class="text-sm text-gray-900 dark:text-gray-100 m-0">
+                {{ contrat.lieu_travail }}
+              </dd>
+            </div>
+
+            <div class="flex gap-4 py-3">
+              <dt class="w-40 flex-none text-sm text-gray-500 dark:text-gray-400">Statut</dt>
+              <dd class="m-0">
+                <span class="inline-block rounded-full px-3 py-1 text-xs font-medium"
+                  [ngClass]="enVigueur
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-gray-200 text-gray-700'">
+                  {{ contrat.statut_libelle ?? contrat.statut }}
+                </span>
+              </dd>
+            </div>
+
+          </dl>
+
+          <p class="mt-5 text-xs text-gray-500 dark:text-gray-400">
+            Vérification effectuée le {{ formaterHorodatage(contrat.verifie_le) }}.
+          </p>
+
+        </div>
+      </div>
+
+      <!-- ── Code inconnu ── -->
+      <div *ngIf="!authentique"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+
+        <div class="bg-red-600 px-6 py-5 text-white">
+          <div class="flex items-center gap-3">
+            <mat-icon svgIcon="mat:error_outline" class="flex-none"
+              style="font-size: 34px; width: 34px; height: 34px;"></mat-icon>
+            <div>
+              <h1 class="text-xl font-bold m-0">Document non reconnu</h1>
+              <p class="text-sm opacity-90 m-0 mt-0.5">
+                Aucun contrat ne correspond à ce code de vérification.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6">
+          <p class="text-sm text-gray-600 dark:text-gray-300">
+            Le code lu ne figure pas dans nos registres. Cela peut vouloir dire
+            que le document est un faux, mais aussi que le code a été mal saisi
+            ou que le QR code a été partiellement effacé.
+          </p>
+
+          <div *ngIf="code"
+            class="mt-4 rounded bg-gray-100 dark:bg-gray-700 px-3 py-2
+                   text-xs font-mono break-all text-gray-600 dark:text-gray-300">
+            {{ code }}
+          </div>
+
+          <p class="mt-4 text-sm text-gray-600 dark:text-gray-300">
+            En cas de doute, rapprochez-vous directement de l’établissement
+            émetteur du document.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-6 text-center">
+        <a mat-stroked-button routerLink="/home">
+          <mat-icon svgIcon="mat:home" class="mr-2"></mat-icon>
+          Accueil
+        </a>
+      </div>
+
+    </ng-container>
+
+  </div>
+</div>

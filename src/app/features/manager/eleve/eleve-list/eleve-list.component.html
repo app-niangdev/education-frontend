@@ -1,0 +1,156 @@
+<vex-liste-page
+  icon="mat:contacts"
+  titre="Élèves"
+  titreCarte="Liste des élèves"
+  [sousTitre]="meta().total + ' élève(s) enregistré(s)'"
+  [loading]="loading"
+  [vide]="eleves().length === 0"
+  [aDesFiltres]="true"
+  [meta]="meta()"
+  [pageSizeOptions]="meta().pageSizeOptions ?? [5, 10, 25, 50]"
+  (pageChange)="onPageChange($event)">
+
+  <!-- Actions en-tête -->
+  <button entete *ngIf="peutImporter" mat-stroked-button type="button" (click)="importerEleves()"
+    class="hidden sm:inline-flex" matTooltip="Reprise de données : importer des élèves depuis un fichier Excel">
+    <mat-icon svgIcon="mat:archive" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+    Importer
+  </button>
+  <button entete color="primary" mat-raised-button type="button" (click)="nouvelEleve()"
+    class="hidden sm:inline-flex">
+    <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    Nouvel élève
+  </button>
+
+  <!-- Filtres : appliqués au clic sur « Rechercher » (ou touche Entrée) -->
+  <form filtres [formGroup]="form" (ngSubmit)="rechercher()"
+    class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-4 w-full">
+    <mat-form-field appearance="outline" class="w-full sm:w-64" subscriptSizing="dynamic">
+      <mat-label>Recherche générale</mat-label>
+      <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+      <input matInput formControlName="search" placeholder="Nom, prénom, téléphone, tuteur..." />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full sm:w-48" subscriptSizing="dynamic">
+      <mat-label>Matricule</mat-label>
+      <mat-icon matPrefix svgIcon="mat:badge" class="mr-2 text-hint icon-sm"></mat-icon>
+      <input matInput formControlName="matricule" placeholder="Ex. ELV-2026-001" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full sm:w-44" subscriptSizing="dynamic">
+      <mat-label>Statut</mat-label>
+      <mat-select formControlName="statut">
+        <mat-option value="">Tous les statuts</mat-option>
+        <mat-option *ngFor="let s of statuts" [value]="s.value">{{ s.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full sm:w-44" subscriptSizing="dynamic">
+      <mat-label>Classe</mat-label>
+      <mat-select formControlName="classe">
+        <mat-option value="">Toutes les classes</mat-option>
+        <mat-option *ngFor="let c of classes" [value]="c.id">{{ c.nom }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full sm:w-36" subscriptSizing="dynamic">
+      <mat-label>Sexe</mat-label>
+      <mat-select formControlName="sexe">
+        <mat-option value="">Tous</mat-option>
+        <mat-option value="M">Masculin</mat-option>
+        <mat-option value="F">Féminin</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="submit" class="flex-none">
+      <mat-icon svgIcon="mat:search" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+      Rechercher
+    </button>
+    <button *ngIf="filtreActif" mat-stroked-button type="button" (click)="reinitialiserFiltres()" class="flex-none">
+      <mat-icon svgIcon="mat:clear_all" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+      Réinitialiser
+    </button>
+  </form>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let eleve of eleves()"
+    ligneClass="cursor-pointer" (click)="voirFiche(eleve)">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+      <mat-icon svgIcon="mat:person" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold flex items-center gap-2">
+        <span class="truncate">{{ eleve.nom_complet }}</span>
+        <mat-icon *ngIf="alerteMedicale(eleve)" svgIcon="mat:warning" class="icon-xs text-red-600 flex-none"
+          matTooltip="Contre-indication ou antécédent médical à signaler"></mat-icon>
+      </p>
+      <p class="m-0 caption text-hint">
+        <span class="font-medium text-primary-600">{{ eleve.matricule }}</span>
+        &bull; <span>{{ eleve.classe_actuelle?.nom ?? 'Non affecté' }}</span>
+        <ng-container *ngIf="eleve.tuteur">
+          &bull; <span>Tuteur : {{ eleve.tuteur.telephone_principal }}</span>
+        </ng-container>
+      </p>
+    </div>
+
+    <!-- Statut à droite -->
+    <span badge class="px-2 py-1 rounded-full text-xs font-medium" [ngClass]="statutClass(eleve)">
+      {{ statutLabel(eleve) }}
+    </span>
+
+    <button actions mat-icon-button type="button" (click)="$event.stopPropagation()"
+      [matMenuTriggerFor]="actionsMenu" [matMenuTriggerData]="{ eleve: eleve }">
+      <mat-icon svgIcon="mat:more_vert"></mat-icon>
+    </button>
+  </vex-liste-ligne>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:contacts" class="icon-lg"></mat-icon>
+    </div>
+
+    <ng-container *ngIf="filtreActif; else aucunEleve">
+      <h3 class="title m-0">Aucun résultat</h3>
+      <p class="m-0 caption text-hint text-center">
+        Aucun élève ne correspond aux critères sélectionnés.
+      </p>
+      <button mat-stroked-button type="button" (click)="reinitialiserFiltres()">
+        Réinitialiser les filtres
+      </button>
+    </ng-container>
+
+    <ng-template #aucunEleve>
+      <h3 class="title m-0">Aucun élève</h3>
+      <p class="m-0 caption text-hint text-center">
+        Commencez par créer le premier élève de l'établissement.
+      </p>
+      <button color="primary" mat-raised-button type="button" (click)="nouvelEleve()">
+        <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Créer un élève
+      </button>
+    </ng-template>
+  </div>
+</vex-liste-page>
+
+<!-- Menu actions -->
+<mat-menu #actionsMenu="matMenu" xPosition="before" yPosition="below">
+  <ng-template let-eleve="eleve" matMenuContent>
+    <button mat-menu-item (click)="voirFiche(eleve)">
+      <mat-icon svgIcon="mat:visibility" class="mr-2"></mat-icon>
+      <span>Voir la fiche</span>
+    </button>
+    <button mat-menu-item (click)="editerEleve(eleve)">
+      <mat-icon svgIcon="mat:edit" class="mr-2"></mat-icon>
+      <span>Modifier</span>
+    </button>
+    <button *ngIf="peutInscrire" mat-menu-item (click)="inscrire(eleve)">
+      <mat-icon svgIcon="mat:assignment" class="mr-2"></mat-icon>
+      <span>Inscrire / Réinscrire</span>
+    </button>
+    <button *ngIf="!isSupervisor" mat-menu-item (click)="supprimerEleve(eleve)" class="text-red-600">
+      <mat-icon svgIcon="mat:delete" class="mr-2"></mat-icon>
+      <span>Supprimer</span>
+    </button>
+  </ng-template>
+</mat-menu>

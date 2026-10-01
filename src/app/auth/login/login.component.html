@@ -1,0 +1,103 @@
+<div class="w-full h-full bg-pattern flex flex-col items-center justify-center p-4">
+  <!-- Card container avec classes responsives -->
+  <div @fadeInUp
+    class="card overflow-hidden w-full sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto border border-primary-500">
+    <div class="p-4 sm:p-6 pb-0 flex flex-col items-center justify-center">
+      <div class="fill-current text-center">
+        <vex-etablissement-logo imgClass="w-36 sm:w-36"></vex-etablissement-logo>
+      </div>
+    </div>
+
+    <div class="text-center mt-2 sm:mt-4">
+      <h2 class="title m-0 text-xl sm:text-2xl">Se connecter</h2>
+      <h4 class="body-2 text-secondary m-0 text-sm sm:text-base">
+        Connectez-vous avec vos identifiants, ci-dessous.
+      </h4>
+    </div>
+    <div [formGroup]="form" class="p-4 sm:p-6 flex flex-col gap-3 sm:gap-4">
+      <div class="flex flex-col">
+        <!-- Un seul champ : le personnel saisit son e-mail ou son identifiant,
+             les familles leur numéro de téléphone. -->
+        <mat-form-field class="flex-1">
+          <mat-label>E-mail ou téléphone</mat-label>
+          <input formControlName="identifiant" matInput required />
+          <mat-hint class="text-xs">
+            Tuteurs : votre numéro de téléphone
+          </mat-hint>
+        </mat-form-field>
+
+        <div *ngIf="form.controls['identifiant'].invalid && (form.controls['identifiant'].dirty)"
+          class="text-red-500 font-medium text-xs sm:text-sm relative mt-1">
+          <div *ngIf="form.controls['identifiant'].errors?.['required']">
+            L'e-mail ou le numéro de téléphone est obligatoire
+          </div>
+        </div>
+
+        <!-- Champ Password -->
+        <mat-form-field class="flex-1 mt-3 sm:mt-4">
+          <mat-label>Mot de passe</mat-label>
+          <input [type]="inputType" formControlName="password" matInput required />
+          <button (click)="toggleVisibility()" mat-icon-button matIconSuffix
+            matTooltip="Afficher/Masquer le mot de passe" type="button">
+            <mat-icon *ngIf="visible" svgIcon="mat:visibility"></mat-icon>
+            <mat-icon *ngIf="!visible" svgIcon="mat:visibility_off"></mat-icon>
+          </button>
+        </mat-form-field>
+
+        <!-- Messages d'erreur pour Password -->
+        <div
+          *ngIf="form.controls['password'].invalid && (form.controls['password'].dirty || form.controls['password'].touched)"
+          class="text-red-500 font-medium text-xs sm:text-sm relative -mt-3">
+          <div *ngIf="form.controls['password'].errors?.['required']">
+            Le mot de passe est obligatoire
+          </div>
+          <div *ngIf="form.controls['password'].errors?.['minlength']">
+            Le mot de passe doit comporter minimum 8 caractères
+          </div>
+          <div *ngIf="form.controls['password'].errors?.['maxlength']">
+            Le mot de passe ne doit pas dépasser 8 caractères
+          </div>
+        </div>
+      </div>
+
+      <!-- Accès temporairement bloqué : compte à rebours -->
+      <div *ngIf="isBlocked"
+        class="mt-2 p-4 text-red-800 bg-red-50 border border-red-500 rounded text-center">
+        <div class="flex items-center justify-center gap-2 font-semibold text-sm sm:text-base">
+          <mat-icon svgIcon="mat:lock" class="text-red-700"></mat-icon>
+          Accès temporairement bloqué
+        </div>
+
+        <p class="m-0 mt-2 text-xs sm:text-sm">{{ blockMessage }}</p>
+
+        <p class="m-0 mt-3 text-xs sm:text-sm">Nouvelle tentative dans :</p>
+        <div class="mt-1 text-3xl sm:text-4xl font-bold tabular-nums tracking-widest"
+          role="timer" aria-live="polite">
+          {{ countdownLabel }}
+        </div>
+      </div>
+
+      <div *ngIf="errorMessage && !isBlocked"
+        class="mt-4 p-4 text-red-800 bg-red-100 border border-red-600 rounded text-center">
+        {{ errorMessage }}
+      </div>
+      <div class="flex flex-row items-center justify-between gap-2">
+        <mat-checkbox class="caption text-xs sm:text-sm" formArrayName="rememberme" color="primary">Se souvenir de
+          moi</mat-checkbox>
+        <a [routerLink]="['/forgot-password']" class="caption text-xs sm:text-sm whitespace-nowrap">Mot de passe
+          oublié?</a>
+      </div>
+
+      <button (click)="login()" color="primary" mat-raised-button type="button"
+        [disabled]="form.invalid || isSubmitting || isBlocked" class="mt-2 sm:mt-4">
+        <mat-icon svgIcon="mat:check_circle" *ngIf="!isSubmitting" class="mr-1"></mat-icon>
+        <mat-icon *ngIf="isSubmitting" class="animate-spin m-2" svgIcon="mat:autorenew"></mat-icon>
+        {{ isBlocked ? 'VEUILLEZ PATIENTER' : 'SE CONNECTER' }}
+      </button>
+
+      <p class="text-secondary text-center text-xs sm:text-sm">
+        <span>Orchestrez vos boutiques, maximisez vos résultats</span>
+      </p>
+    </div>
+  </div>
+</div>

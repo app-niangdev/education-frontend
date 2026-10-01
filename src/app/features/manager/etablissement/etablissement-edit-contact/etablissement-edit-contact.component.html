@@ -1,0 +1,68 @@
+<form (ngSubmit)="save()" [formGroup]="form">
+  <div class="flex items-center" mat-dialog-title>
+    <h2 class="headline m-0 flex-auto">Contacts de l'établissement</h2>
+    <button class="text-secondary" mat-dialog-close mat-icon-button type="button">
+      <mat-icon svgIcon="mat:close"></mat-icon>
+    </button>
+  </div>
+
+  <mat-divider class="text-border"></mat-divider>
+
+  <mat-dialog-content class="flex flex-col gap-4 pt-4">
+    <mat-form-field class="flex-auto">
+      <mat-label>Email (facultatif)</mat-label>
+      <input cdkFocusInitial formControlName="email" matInput type="email" />
+      <mat-icon matIconPrefix svgIcon="mat:mail"></mat-icon>
+      <mat-hint>Reçoit les messages du formulaire de contact public</mat-hint>
+      <mat-error *ngIf="form.controls['email'].errors?.['email']">Format d'email invalide</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="flex-auto">
+      <mat-label>Téléphone principal</mat-label>
+      <input formControlName="telephone_principal" matInput type="tel" />
+      <mat-icon matIconPrefix svgIcon="mat:phone"></mat-icon>
+      <mat-error *ngIf="form.controls['telephone_principal'].errors?.['required']">Le téléphone principal est obligatoire</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="flex-auto">
+      <mat-label>Téléphone secondaire</mat-label>
+      <input formControlName="telephone_secondaire" matInput type="tel" />
+      <mat-icon matIconPrefix svgIcon="mat:phone"></mat-icon>
+      <mat-error *ngIf="form.controls['telephone_secondaire'].errors?.['required']">Le téléphone secondaire est obligatoire</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="flex-auto">
+      <mat-label>Site web</mat-label>
+      <input formControlName="site_web" matInput type="url" placeholder="https://exemple.sn" />
+      <mat-icon matIconPrefix svgIcon="mat:web"></mat-icon>
+      <mat-error *ngIf="form.controls['site_web'].errors?.['required']">Le site web est obligatoire</mat-error>
+      <mat-error *ngIf="form.controls['site_web'].errors?.['url']">L'adresse doit commencer par http:// ou https://</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="flex-auto">
+      <mat-label>Facebook (facultatif)</mat-label>
+      <input formControlName="lien_facebook" matInput type="url" placeholder="https://facebook.com/..." />
+      <mat-icon matIconPrefix svgIcon="mat:contacts"></mat-icon>
+      <mat-error *ngIf="form.controls['lien_facebook'].errors?.['url']">L'adresse doit commencer par http:// ou https://</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="flex-auto">
+      <mat-label>Instagram (facultatif)</mat-label>
+      <input formControlName="lien_instagram" matInput type="url" placeholder="https://instagram.com/..." />
+      <mat-icon matIconPrefix svgIcon="mat:contacts"></mat-icon>
+      <mat-error *ngIf="form.controls['lien_instagram'].errors?.['url']">L'adresse doit commencer par http:// ou https://</mat-error>
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button color="warn" mat-raised-button type="button" (click)="close()">
+      <mat-icon svgIcon="mat:cancel"></mat-icon>
+      <span>Annuler</span>
+    </button>
+    <button [disabled]="form.invalid || isSubmitting" type="submit" color="primary" mat-flat-button class="ml-4">
+      <mat-spinner *ngIf="isSubmitting" diameter="18" class="mr-2"></mat-spinner>
+      <mat-icon *ngIf="!isSubmitting" svgIcon="mat:save"></mat-icon>
+      <span>Enregistrer</span>
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -1,0 +1,241 @@
+<!--
+  Un fil de discussion. Les bulles de l'utilisateur courant sont en
+  `bg-primary-600` : la couleur suit le paramétrage de l'établissement, sans
+  rebuild. Les bulles d'en face restent en gris neutre, pour que le contraste
+  entre « moi » et « l'autre » tienne quelle que soit la teinte choisie.
+-->
+<div class="relative h-full flex flex-col overflow-hidden">
+  <!-- En-tête -->
+  <div class="px-3 sm:px-6 bg-foreground border-b min-h-16 py-2 flex-none flex items-center gap-1 sm:gap-3">
+    <!-- Retour à la liste : seul moyen de la retrouver sur mobile, où le
+         tiroir se referme dès qu'un fil est ouvert. -->
+    <button
+      [routerLink]="['../']"
+      class="sm:hidden flex-none"
+      mat-icon-button
+      type="button">
+      <mat-icon svgIcon="mat:arrow_back"></mat-icon>
+    </button>
+
+    <div class="flex items-center gap-3 flex-1 min-w-0">
+      <div
+        class="hidden sm:flex flex-none w-9 h-9 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-700/30 dark:text-primary-200 items-center justify-center font-semibold text-xs">
+        {{ entete().charAt(0) }}
+      </div>
+
+      <div class="flex-1 truncate">
+        <div class="font-semibold text-sm truncate">
+          {{ conversation()?.sujet }}
+        </div>
+        <div class="flex items-center gap-2 truncate">
+          <span class="text-xs text-gray-600 dark:text-gray-400 truncate">
+            {{ entete() }}
+          </span>
+
+          <span
+            *ngIf="conversation() as fil"
+            [ngClass]="classesStatut[fil.statut]"
+            class="text-[10px] font-medium px-1.5 py-0.5 rounded flex-none">
+            {{ libellesStatut[fil.statut] }}
+          </span>
+
+          <!-- L'élève concerné, quand la demande en vise un. -->
+          <span
+            *ngIf="conversation()?.eleve as eleve"
+            class="text-[10px] text-gray-500 truncate">
+            · {{ eleve.prenom }} {{ eleve.nom }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions de traitement : agents uniquement. -->
+    <div *ngIf="peutTraiter" class="flex-none flex items-center gap-1">
+      <button
+        [matMenuTriggerFor]="menuActions"
+        mat-icon-button
+        matTooltip="Actions"
+        type="button">
+        <mat-icon svgIcon="mat:more_vert"></mat-icon>
+      </button>
+
+      <mat-menu #menuActions="matMenu" xPosition="before">
+        <button (click)="prendreEnCharge()" mat-menu-item type="button">
+          <mat-icon matMenuItemIcon svgIcon="mat:assignment_ind"></mat-icon>
+          <span>Prendre en charge</span>
+        </button>
+
+        <button
+          (click)="escalader()"
+          *ngIf="peutEscalader"
+          mat-menu-item
+          type="button">
+          <mat-icon matMenuItemIcon svgIcon="mat:arrow_upward"></mat-icon>
+          <span>Escalader à la direction</span>
+        </button>
+
+        <mat-divider></mat-divider>
+
+        <button
+          (click)="changerStatut(StatutConversation.RESOLUE)"
+          mat-menu-item
+          type="button">
+          <mat-icon matMenuItemIcon svgIcon="mat:check_circle"></mat-icon>
+          <span>Marquer comme résolue</span>
+        </button>
+
+        <button
+          (click)="changerStatut(StatutConversation.ARCHIVEE)"
+          mat-menu-item
+          type="button">
+          <mat-icon matMenuItemIcon svgIcon="mat:archive"></mat-icon>
+          <span>Archiver</span>
+        </button>
+      </mat-menu>
+    </div>
+  </div>
+
+  <!-- Bandeau d'escalade : la direction doit voir d'emblée d'où vient le
+       dossier et pourquoi il lui est transmis. -->
+  <div
+    *ngIf="conversation()?.motif_escalade as motif"
+    class="flex-none px-3 sm:px-6 py-2 bg-amber-50 dark:bg-amber-900/20 border-b flex items-start gap-2">
+    <mat-icon
+      class="icon-sm flex-none text-amber-600 dark:text-amber-300"
+      svgIcon="mat:arrow_upward"></mat-icon>
+    <div class="text-xs text-amber-800 dark:text-amber-200">
+      <span class="font-medium">
+        Escaladée depuis
+        {{
+          conversation()?.service_origine
+            ? libellesService[conversation()!.service_origine!]
+            : 'un autre service'
+        }}
+      </span>
+      — {{ motif }}
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <vex-scrollbar class="flex-1">
+    <div class="flex flex-col space-y-3 p-3 sm:p-6 justify-end">
+      <div
+        *ngIf="messages().length === 0"
+        class="text-center text-sm text-gray-500 py-10">
+        Aucun message dans ce fil.
+      </div>
+
+      <ng-container *ngFor="let message of messages(); trackBy: trackById">
+        <!-- Message de service : centré, discret, il n'appartient à personne.
+             Sauf s'il porte un justificatif : un accusé de paiement mérite
+             mieux qu'une pastille grise, la famille doit pouvoir le lire et
+             récupérer son reçu. -->
+        <div *ngIf="message.est_systeme && !message.a_piece_jointe" class="flex justify-center">
+          <div
+            class="text-[11px] text-gray-500 bg-gray-100 dark:bg-gray-800 rounded-full px-3 py-1 max-w-[85%] text-center">
+            {{ message.corps }}
+          </div>
+        </div>
+
+        <!-- Accusé de paiement : encadré, avec le justificatif à télécharger. -->
+        <div *ngIf="message.est_systeme && message.a_piece_jointe" class="flex justify-center">
+          <div
+            class="w-full max-w-[85%] rounded-xl border border-primary-600/30 bg-primary-600/5 px-4 py-3">
+            <div class="flex items-start gap-2 mb-2">
+              <mat-icon
+                class="icon-sm text-primary-600 flex-none mt-0.5"
+                svgIcon="mat:check_circle"></mat-icon>
+              <div class="text-sm whitespace-pre-wrap break-words flex-1">
+                {{ message.corps }}
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 pt-2 border-t border-primary-600/20">
+              <div class="text-xs text-gray-500">
+                {{ message.created_at | date: 'dd/MM/yyyy HH:mm' }}
+              </div>
+
+              <button
+                (click)="telecharger(message)"
+                [disabled]="telechargementEnCours() === message.id"
+                color="primary"
+                mat-stroked-button
+                type="button">
+                <mat-icon class="icon-sm ltr:mr-2 rtl:ml-2" svgIcon="mat:download"></mat-icon>
+                {{ message.piece_jointe_libelle ?? 'Télécharger le reçu' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <ng-container *ngIf="!message.est_systeme">
+          <!-- Mes messages : à droite, en couleur primaire. -->
+          <div *ngIf="estDeMoi(message)" class="flex flex-col items-end">
+            <div
+              class="px-4 py-3 rounded-xl rounded-br-none bg-primary-600 text-white inline-flex self-end max-w-[88%] sm:max-w-[75%] whitespace-pre-wrap break-words">
+              {{ message.corps }}
+            </div>
+            <div class="text-[11px] text-gray-500 mt-1 mr-1">
+              {{ message.created_at | date: 'dd/MM HH:mm' }}
+            </div>
+          </div>
+
+          <!-- Messages d'en face : à gauche, en gris. -->
+          <div *ngIf="!estDeMoi(message)" class="flex gap-2">
+            <div
+              class="w-8 h-8 rounded-full self-end flex-none flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-[10px] font-semibold">
+              {{ initiales(message) }}
+            </div>
+
+            <div class="flex flex-col max-w-[88%] sm:max-w-[75%]">
+              <div class="text-[11px] text-gray-500 mb-0.5 ml-1">
+                {{ auteur(message) }}
+              </div>
+              <div
+                class="px-4 py-3 rounded-xl rounded-bl-none bg-gray-200 dark:bg-gray-800 inline-flex self-start whitespace-pre-wrap break-words">
+                {{ message.corps }}
+              </div>
+              <div class="text-[11px] text-gray-500 mt-1 ml-1">
+                {{ message.created_at | date: 'dd/MM HH:mm' }}
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+  </vex-scrollbar>
+
+  <!-- Saisie -->
+  <div *ngIf="peutEcrire" class="flex-none bg-foreground border-t zone-saisie-conteneur">
+    <div class="relative flex items-end gap-2 p-3">
+      <!-- Entrée envoie, Maj+Entrée passe à la ligne : une famille qui écrit
+           une explication longue doit pouvoir aérer son message.
+
+           La bordure se teinte et s'épaissit au focus : sans repère visuel,
+           rien ne signalait que le champ était actif. En `primary`, elle suit
+           la couleur de l'établissement comme le reste de l'interface. -->
+      <textarea
+        (keydown.enter)="surEntree($event)"
+        [formControl]="saisie"
+        class="zone-saisie flex-1 resize-none bg-transparent px-3 py-2 max-h-32 rounded focus:outline-none"
+        placeholder="Écrivez votre message..."
+        rows="1"></textarea>
+
+      <button
+        (click)="envoyer()"
+        [disabled]="!saisie.value.trim() || envoiEnCours()"
+        color="primary"
+        mat-mini-fab
+        matTooltip="Envoyer"
+        type="button">
+        <mat-icon svgIcon="mat:send"></mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div
+    *ngIf="!peutEcrire && conversation()"
+    class="flex-none bg-gray-100 dark:bg-gray-800 border-t px-3 sm:px-6 py-4 text-center text-sm text-gray-500 zone-saisie-conteneur">
+    Cette conversation est archivée : elle n'accepte plus de message.
+  </div>
+</div>

@@ -1,0 +1,256 @@
+/**
+ * Pont entre la couleur primaire dynamique et Angular Material.
+ *
+ * Le thème vex expose la couleur primaire via les variables CSS
+ * `--vex-color-primary-*` (canaux RGB), surchargées au runtime sur <body> par
+ * `ThemeColorService`. Tailwind les consomme directement (`bg-primary-600`),
+ * mais Angular Material construit sa palette à la compilation Sass : les hex
+ * du thème sont figés dans le CSS généré (voir `_themes.scss`), donc rien ne
+ * bougeait quand l'établissement changeait sa couleur.
+ *
+ * Material 16 exprime toutefois chacune de ces couleurs via un token CSS
+ * (`--mdc-*` / `--mat-*`). On les redéclare donc ici en fonction des variables
+ * vex : la palette Material devient dynamique sans toucher au Sass compilé.
+ *
+ * Ce fichier est importé en dernier dans `material/_index.scss`, lui-même
+ * importé après `themes` dans `core.scss` : à spécificité égale, ces règles
+ * gagnent en cascade.
+ *
+ * IMPORTANT : les sélecteurs reproduisent la spécificité de ceux émis par
+ * Material. Certains tokens (form-field, datepicker) sont posés sur le
+ * sélecteur de thème nu (`.vex-theme-default`), d'autres sur une variante
+ * `.mat-primary` — surcharger uniquement `:root` ne suffirait pas.
+ */
+
+// Couleur primaire dynamique, avec repli sur la palette compilée du thème.
+@function primary($shade, $alpha: 1) {
+  @if $alpha == 1 {
+    @return rgb(var(--vex-color-primary-#{$shade}));
+  }
+  @return rgb(var(--vex-color-primary-#{$shade}) / #{$alpha});
+}
+
+@function on-primary($shade) {
+  @return rgb(var(--vex-color-on-primary-#{$shade}));
+}
+
+/**
+ * Tokens posés par Material sur le sélecteur de thème lui-même.
+ * `.light` / `.dark` sont inclus car le thème peut être porté par un ancêtre.
+ */
+@mixin theme-scope-tokens($shade) {
+  // Champs de formulaire : trait/bordure au focus + curseur de saisie.
+  --mdc-filled-text-field-caret-color: #{primary($shade)};
+  --mdc-filled-text-field-focus-active-indicator-color: #{primary($shade)};
+  --mdc-filled-text-field-focus-label-text-color: #{primary($shade, 0.87)};
+  --mdc-outlined-text-field-caret-color: #{primary($shade)};
+  --mdc-outlined-text-field-focus-outline-color: #{primary($shade)};
+  --mdc-outlined-text-field-focus-label-text-color: #{primary($shade, 0.87)};
+  --mat-form-field-focus-select-arrow-color: #{primary($shade, 0.87)};
+  --mat-select-focused-arrow-color: #{primary($shade, 0.87)};
+
+  // Datepicker : jour sélectionné + icône du toggle actif.
+  --mat-datepicker-calendar-date-selected-state-background-color: #{primary(
+      $shade
+    )};
+  --mat-datepicker-calendar-date-selected-state-text-color: #{on-primary(
+      $shade
+    )};
+  --mat-datepicker-calendar-date-focus-state-background-color: #{primary(
+      $shade,
+      0.3
+    )};
+  --mat-datepicker-calendar-date-hover-state-background-color: #{primary(
+      $shade,
+      0.3
+    )};
+  --mat-datepicker-toggle-active-state-icon-color: #{primary($shade)};
+  --mat-datepicker-calendar-date-in-range-state-background-color: #{primary(
+      $shade,
+      0.2
+    )};
+
+  // Case à cocher par défaut (mat-list-option, checkbox sans `color`).
+  --mdc-checkbox-selected-icon-color: #{primary($shade)};
+  --mdc-checkbox-selected-hover-icon-color: #{primary($shade)};
+  --mdc-checkbox-selected-focus-icon-color: #{primary($shade)};
+  --mdc-checkbox-selected-pressed-icon-color: #{primary($shade)};
+  --mdc-checkbox-selected-checkmark-color: #{on-primary($shade)};
+  --mdc-checkbox-selected-hover-state-layer-color: #{primary($shade)};
+  --mdc-checkbox-selected-focus-state-layer-color: #{primary($shade)};
+  --mdc-checkbox-selected-pressed-state-layer-color: #{primary($shade)};
+}
+
+/**
+ * Tokens posés par Material sur les variantes `.mat-primary`
+ * (et sur les composants dont la couleur primaire est la valeur par défaut).
+ */
+@mixin component-tokens($shade, $switch-track, $switch-handle) {
+  // --- Boutons pleins (mat-flat-button / mat-raised-button) ---
+  .mat-mdc-unelevated-button.mat-primary {
+    --mdc-filled-button-container-color: #{primary($shade)};
+    --mdc-filled-button-label-text-color: #{on-primary($shade)};
+  }
+
+  .mat-mdc-raised-button.mat-primary {
+    --mdc-protected-button-container-color: #{primary($shade)};
+    --mdc-protected-button-label-text-color: #{on-primary($shade)};
+  }
+
+  // --- Boutons texte et contour (mat-button / mat-stroked-button) ---
+  .mat-mdc-button.mat-primary {
+    --mdc-text-button-label-text-color: #{primary($shade)};
+    --mat-mdc-button-persistent-ripple-color: #{primary($shade)};
+    --mat-mdc-button-ripple-color: #{primary($shade, 0.1)};
+  }
+
+  .mat-mdc-outlined-button.mat-primary {
+    --mdc-outlined-button-label-text-color: #{primary($shade)};
+    --mat-mdc-button-persistent-ripple-color: #{primary($shade)};
+    --mat-mdc-button-ripple-color: #{primary($shade, 0.1)};
+  }
+
+  // --- Boutons icône ---
+  .mat-mdc-icon-button.mat-primary {
+    --mdc-icon-button-icon-color: #{primary($shade)};
+    --mat-mdc-button-persistent-ripple-color: #{primary($shade)};
+    --mat-mdc-button-ripple-color: #{primary($shade, 0.1)};
+  }
+
+  // --- FAB ---
+  .mat-mdc-fab.mat-primary,
+  .mat-mdc-mini-fab.mat-primary {
+    --mdc-fab-container-color: #{primary($shade)};
+    --mat-mdc-fab-foreground-color: #{on-primary($shade)};
+    --mat-mdc-fab-state-layer-color: #{on-primary($shade)};
+  }
+
+  // --- Icônes ---
+  .mat-icon.mat-primary {
+    --mat-icon-color: #{primary($shade)};
+  }
+
+  // --- Cases à cocher ---
+  .mat-mdc-checkbox.mat-primary {
+    --mdc-checkbox-selected-icon-color: #{primary($shade)};
+    --mdc-checkbox-selected-hover-icon-color: #{primary($shade)};
+    --mdc-checkbox-selected-focus-icon-color: #{primary($shade)};
+    --mdc-checkbox-selected-pressed-icon-color: #{primary($shade)};
+    --mdc-checkbox-selected-checkmark-color: #{on-primary($shade)};
+    --mdc-checkbox-selected-hover-state-layer-color: #{primary($shade)};
+    --mdc-checkbox-selected-focus-state-layer-color: #{primary($shade)};
+    --mdc-checkbox-selected-pressed-state-layer-color: #{primary($shade)};
+  }
+
+  // --- Boutons radio (primaire = valeur par défaut de mat-radio-group) ---
+  .mat-mdc-radio-button.mat-primary {
+    --mdc-radio-selected-icon-color: #{primary($shade)};
+    --mdc-radio-selected-hover-icon-color: #{primary($shade)};
+    --mdc-radio-selected-focus-icon-color: #{primary($shade)};
+    --mdc-radio-selected-pressed-icon-color: #{primary($shade)};
+    --mat-radio-checked-ripple-color: #{primary($shade)};
+  }
+
+  // --- Interrupteurs (mat-slide-toggle : primaire par défaut, sans classe) ---
+  .mat-mdc-slide-toggle:not(.mat-accent):not(.mat-warn) {
+    --mdc-switch-selected-track-color: #{primary($switch-track)};
+    --mdc-switch-selected-hover-track-color: #{primary($switch-track)};
+    --mdc-switch-selected-focus-track-color: #{primary($switch-track)};
+    --mdc-switch-selected-pressed-track-color: #{primary($switch-track)};
+    --mdc-switch-selected-handle-color: #{primary($shade)};
+    --mdc-switch-selected-hover-handle-color: #{primary($switch-handle)};
+    --mdc-switch-selected-focus-handle-color: #{primary($switch-handle)};
+    --mdc-switch-selected-pressed-handle-color: #{primary($switch-handle)};
+    --mdc-switch-selected-focus-state-layer-color: #{primary($shade)};
+    --mdc-switch-selected-hover-state-layer-color: #{primary($shade)};
+    --mdc-switch-selected-pressed-state-layer-color: #{primary($shade)};
+  }
+
+  // --- Barres de progression ---
+  .mat-mdc-progress-bar:not(.mat-accent):not(.mat-warn) {
+    --mdc-linear-progress-active-indicator-color: #{primary($shade)};
+    --mdc-linear-progress-track-color: #{primary($shade, 0.25)};
+  }
+
+  .mat-mdc-progress-spinner:not(.mat-accent):not(.mat-warn) {
+    --mdc-circular-progress-active-indicator-color: #{primary($shade)};
+  }
+
+  // --- Onglets ---
+  .mat-mdc-tab-group:not(.mat-accent):not(.mat-warn),
+  .mat-mdc-tab-nav-bar:not(.mat-accent):not(.mat-warn) {
+    --mdc-tab-indicator-active-indicator-color: #{primary($shade)};
+    --mat-tab-header-active-label-text-color: #{primary($shade)};
+    --mat-tab-header-active-ripple-color: #{primary($shade)};
+    --mat-tab-header-inactive-ripple-color: #{primary($shade)};
+    --mat-tab-header-active-focus-label-text-color: #{primary($shade)};
+    --mat-tab-header-active-hover-label-text-color: #{primary($shade)};
+    --mat-tab-header-active-focus-indicator-color: #{primary($shade)};
+    --mat-tab-header-active-hover-indicator-color: #{primary($shade)};
+  }
+
+  .mat-mdc-tab-group.mat-tab-group-inverted-header:not(.mat-accent):not(
+      .mat-warn
+    ),
+  .mat-mdc-tab-header.mat-primary {
+    --mat-tab-header-with-background-background-color: #{primary($shade)};
+    --mat-tab-header-with-background-foreground-color: #{on-primary($shade)};
+  }
+
+  // --- Curseurs (mat-slider) ---
+  .mat-mdc-slider:not(.mat-accent):not(.mat-warn) {
+    --mdc-slider-handle-color: #{primary($shade)};
+    --mdc-slider-focus-handle-color: #{primary($shade)};
+    --mdc-slider-hover-handle-color: #{primary($shade)};
+    --mdc-slider-active-track-color: #{primary($shade)};
+    --mdc-slider-inactive-track-color: #{primary($shade)};
+    --mdc-slider-with-tick-marks-active-container-color: #{on-primary($shade)};
+    --mdc-slider-with-tick-marks-inactive-container-color: #{primary($shade)};
+    --mat-mdc-slider-ripple-color: #{primary($shade)};
+    --mat-mdc-slider-hover-ripple-color: #{primary($shade, 0.05)};
+    --mat-mdc-slider-focus-ripple-color: #{primary($shade, 0.2)};
+  }
+
+  // --- Listes / options sélectionnées ---
+  .mat-mdc-list-option:not(.mat-accent):not(.mat-warn) {
+    --mdc-checkbox-selected-icon-color: #{primary($shade)};
+    --mdc-checkbox-selected-hover-icon-color: #{primary($shade)};
+    --mdc-checkbox-selected-focus-icon-color: #{primary($shade)};
+    --mdc-checkbox-selected-pressed-icon-color: #{primary($shade)};
+    --mdc-checkbox-selected-checkmark-color: #{on-primary($shade)};
+    --mdc-radio-selected-icon-color: #{primary($shade)};
+    --mdc-radio-selected-hover-icon-color: #{primary($shade)};
+    --mdc-radio-selected-focus-icon-color: #{primary($shade)};
+    --mdc-radio-selected-pressed-icon-color: #{primary($shade)};
+  }
+}
+
+/**
+ * Mode clair — Material utilise la nuance 600 comme couleur primaire par
+ * défaut, et les nuances 300/900 pour les pistes et poignées d'interrupteur.
+ */
+.vex-theme-default,
+.vex-theme-default.light,
+.vex-theme-default .light {
+  @include theme-scope-tokens(600);
+}
+
+.vex-theme-default,
+.vex-theme-default.light,
+.vex-theme-default .light {
+  @include component-tokens(600, 300, 900);
+}
+
+/**
+ * Mode sombre — Material bascule sur la nuance 500 (plus lumineuse sur fond
+ * sombre) et inverse le couple piste/poignée de l'interrupteur.
+ */
+.vex-theme-default.dark,
+.vex-theme-default .dark {
+  @include theme-scope-tokens(500);
+}
+
+.vex-theme-default.dark,
+.vex-theme-default .dark {
+  @include component-tokens(500, 600, 200);
+}

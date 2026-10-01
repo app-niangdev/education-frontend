@@ -1,0 +1,110 @@
+.edt-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  min-width: 720px;
+
+  th,
+  td {
+    border: 1px solid rgb(var(--vex-color-primary-600) / 0.12);
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  thead th {
+    padding: 0.5rem;
+    font-weight: 600;
+    background: rgb(var(--vex-color-primary-600) / 0.08);
+    color: rgb(var(--vex-color-primary-600));
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  // Colonne des heures
+  .edt-time-head {
+    width: 72px;
+  }
+
+  .edt-time {
+    width: 72px;
+    padding: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgb(var(--vex-color-primary-600));
+    background: rgb(var(--vex-color-primary-600) / 0.04);
+    white-space: nowrap;
+  }
+
+  .edt-cell {
+    height: 44px;
+    padding: 0;
+    overflow: hidden; // rien ne déborde de la cellule
+    transition: background-color 0.15s ease;
+  }
+
+  // Case vide : cliquable pour ajouter
+  .edt-cell-vide {
+    cursor: pointer;
+    color: transparent;
+
+    // Le « + » est centré et strictement contenu dans la cellule.
+    .edt-add {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 44px;
+
+      mat-icon {
+        width: 18px;
+        height: 18px;
+        font-size: 18px;
+        line-height: 18px;
+      }
+    }
+
+    &:hover {
+      background: rgb(var(--vex-color-primary-600) / 0.08);
+      color: rgb(var(--vex-color-primary-600));
+    }
+  }
+
+  // Bloc de cours
+  .edt-cell-cours {
+    position: relative;
+    cursor: pointer;
+    padding: 0.35rem 0.4rem;
+    text-align: left;
+    background: rgb(var(--vex-color-primary-600) / 0.12);
+    color: rgb(var(--vex-color-primary-600));
+    border-left: 3px solid rgb(var(--vex-color-primary-600));
+
+    &:hover {
+      background: rgb(var(--vex-color-primary-600) / 0.2);
+    }
+
+    // Le texte reste dans la case (coupe proprement si trop long).
+    p {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-break: break-word;
+    }
+
+    .edt-del {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      line-height: 22px;
+      padding: 0;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    &:hover .edt-del {
+      opacity: 1;
+    }
+  }
+}

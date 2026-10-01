@@ -1,0 +1,139 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- Header -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0">
+      <h2 class="display-1 font-bold m-0 flex items-center w-full">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:assessment"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">
+          Tableau de bord — Enseignant
+          <span *ngIf="stats()?.annee_scolaire" class="caption text-hint font-normal block">
+            Année scolaire {{ stats()?.annee_scolaire?.nom }}
+          </span>
+        </span>
+      </h2>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="flex-auto flex items-center justify-center p-12">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <!-- Empty -->
+  <div *ngIf="!loading && !stats()" class="flex-auto flex flex-col items-center justify-center gap-3 p-12">
+    <mat-icon svgIcon="mat:assessment" class="icon-lg text-hint"></mat-icon>
+    <p class="m-0 text-hint">Aucune statistique disponible.</p>
+  </div>
+
+  <div *ngIf="!loading && stats() as s" class="container-fluid px-6 pb-8">
+
+    <!-- Tuiles d'effectifs -->
+    <div class="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div *ngFor="let t of tiles()" class="card p-4 flex items-center gap-3" @scaleIn>
+        <div class="w-11 h-11 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+          <mat-icon [svgIcon]="t.icon" class="icon-sm"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <p class="m-0 display-1 font-bold leading-none">{{ t.value }}</p>
+          <p class="m-0 caption text-hint truncate">{{ t.label }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Saisie des notes (jauge) -->
+      <div class="card p-6">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <h3 class="title m-0 mb-1">Saisie des notes</h3>
+            <p class="caption text-hint m-0">Notes saisies sur le total attendu</p>
+          </div>
+          <svg viewBox="0 0 42 42" class="w-20 h-20 flex-none" role="img" aria-label="Taux de saisie des notes">
+            <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="var(--viz-track)" stroke-width="5"></circle>
+            <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="var(--viz-primary)" stroke-width="5"
+              [attr.stroke-dasharray]="gaugeDash" stroke-dashoffset="25" stroke-linecap="round"></circle>
+            <text x="21" y="23" text-anchor="middle" class="gauge-value">{{ tauxSaisie }}%</text>
+          </svg>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="rounded-lg border bg-gray-50 px-4 py-3">
+            <p class="m-0 caption text-hint">Notes saisies</p>
+            <p class="m-0 body-1 font-semibold">
+              {{ s.saisie_notes.notes_saisies }} / {{ s.saisie_notes.notes_attendues }}
+            </p>
+          </div>
+          <div class="rounded-lg border bg-gray-50 px-4 py-3">
+            <p class="m-0 caption text-hint">Évaluations complètes</p>
+            <p class="m-0 body-1 font-semibold">
+              {{ s.saisie_notes.evaluations_completes }} / {{ s.saisie_notes.evaluations_total }}
+              <span class="caption text-hint font-normal">· {{ pctCompletes }}%</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Évaluations par type (barres) -->
+      <div class="card p-6">
+        <h3 class="title m-0 mb-1">Évaluations par type</h3>
+        <p class="caption text-hint m-0 mb-4">{{ totalEvaluations }} évaluation(s) au total</p>
+
+        <div *ngIf="totalEvaluations > 0; else aucuneEval" class="flex flex-col gap-3">
+          <div *ngFor="let t of typeBars()">
+            <div class="flex items-center justify-between mb-1">
+              <span class="body-2 font-medium">{{ t.label }}</span>
+              <span class="caption text-hint">{{ t.total }}</span>
+            </div>
+            <div class="h-2.5 rounded-full bg-gray-200 overflow-hidden">
+              <div class="h-full rounded-full" style="background: var(--viz-primary)" [style.width.%]="t.pct"></div>
+            </div>
+          </div>
+        </div>
+        <ng-template #aucuneEval>
+          <p class="caption text-hint m-0">Aucune évaluation créée.</p>
+        </ng-template>
+      </div>
+
+      <!-- Mes cours (tableau) -->
+      <div class="card p-6 lg:col-span-2">
+        <h3 class="title m-0 mb-1">Mes cours</h3>
+        <p class="caption text-hint m-0 mb-4">Classes et matières dont vous avez la charge</p>
+
+        <div *ngIf="s.mes_cours.length > 0; else aucunCours" class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead>
+              <tr class="border-b text-hint">
+                <th class="py-2 pr-4 caption font-medium uppercase">Classe</th>
+                <th class="py-2 pr-4 caption font-medium uppercase">Matière</th>
+                <th class="py-2 pr-4 caption font-medium uppercase text-right">Élèves</th>
+                <th class="py-2 caption font-medium uppercase text-right">Évaluations</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of s.mes_cours" class="border-b last:border-b-0 hover:bg-gray-50">
+                <td class="py-2.5 pr-4 body-2 font-medium">{{ c.classe }}</td>
+                <td class="py-2.5 pr-4 body-2">{{ c.matiere }}</td>
+                <td class="py-2.5 pr-4 body-2 text-right">{{ c.eleves }}</td>
+                <td class="py-2.5 body-2 text-right">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-primary-600/10 text-primary-600">
+                    {{ c.evaluations }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #aucunCours>
+          <p class="caption text-hint m-0">Aucune affectation pour l'année en cours.</p>
+        </ng-template>
+      </div>
+
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,19 @@
+// Le tiroir de la liste des fils. Repris du composant chat du thème Vex : la
+// largeur fixe garde les aperçus lisibles, le pourcentage évite qu'il occupe
+// tout l'écran sur un téléphone.
+.drawer {
+  max-width: 90%;
+  width: 400px;
+
+  ::ng-deep .mat-drawer-inner-container {
+    overflow: hidden;
+  }
+
+  // Sous le point de rupture `sm` (600px), le tiroir passe déjà en mode
+  // `over` (cf. mobileQuery$) : il doit alors occuper tout l'écran, sans
+  // quoi une bande de fil resterait visible et illisible à côté.
+  @media (max-width: 599px) {
+    max-width: 100%;
+    width: 100%;
+  }
+}

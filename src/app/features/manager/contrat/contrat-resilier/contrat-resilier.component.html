@@ -1,0 +1,73 @@
+<div>
+
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:cancel"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">Résilier le contrat</h2>
+      <p class="m-0 caption text-hint">
+        {{ data.contrat.numero_contrat }} — {{ employe }}
+      </p>
+    </div>
+  </div>
+
+  <mat-dialog-content class="px-6 py-4">
+
+    <!-- Une résiliation ne se défait pas : on l'annonce avant la saisie. -->
+    <div class="flex items-start gap-3 rounded p-3 mb-5 bg-red-50 text-red-800 caption">
+      <mat-icon svgIcon="mat:warning" class="icon-sm flex-none mt-0.5"></mat-icon>
+      <span>
+        Le contrat sera clos définitivement et ne pourra plus être modifié.
+        Pour prolonger l'engagement, utilisez plutôt <strong>Renouveler</strong>.
+      </span>
+    </div>
+
+    <form [formGroup]="form" class="flex flex-col gap-5">
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Date de résiliation</mat-label>
+        <mat-icon matPrefix svgIcon="mat:event_busy" class="mr-2 text-hint icon-sm"></mat-icon>
+        <input matInput type="date" formControlName="date_resiliation" [min]="dateDebutMin" />
+        <mat-hint>Ne peut pas précéder le début du contrat</mat-hint>
+        <mat-error *ngIf="f('date_resiliation').hasError('required')">
+          La date de résiliation est obligatoire
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Motif de la résiliation</mat-label>
+        <mat-icon matPrefix svgIcon="mat:notes" class="mr-2 text-hint icon-sm"></mat-icon>
+        <textarea matInput formControlName="motif_resiliation" rows="4"
+          placeholder="Ex: Démission, fin de mission, rupture pendant la période d'essai…"></textarea>
+        <mat-hint>Obligatoire — conservé au dossier de l'employé</mat-hint>
+        <mat-error *ngIf="f('motif_resiliation').hasError('required')">
+          Le motif est obligatoire
+        </mat-error>
+        <mat-error *ngIf="f('motif_resiliation').hasError('minlength')">
+          Le motif doit être un peu plus explicite
+        </mat-error>
+      </mat-form-field>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">
+      Annuler
+    </button>
+
+    <button mat-raised-button color="warn" type="button" (click)="onSubmit()"
+      [disabled]="loading || form.invalid">
+      <ng-container *ngIf="!loading">
+        <mat-icon svgIcon="mat:cancel" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Résilier
+      </ng-container>
+      <ng-container *ngIf="loading">
+        <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        Résiliation…
+      </ng-container>
+    </button>
+  </mat-dialog-actions>
+</div>

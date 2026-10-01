@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>G-2000</title>
+  <base href="/" />
+
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <link href="favicon.ico" rel="icon" type="image/x-icon" />
+</head>
+
+<body dir="ltr">
+  <style>
+    #vex-splash-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      z-index: 99999;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+    }
+
+    .vex-splash-screen-logo-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .vex-splash-screen-loader {
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      /* La couleur reelle est posee par le script ci-dessous, qui relit celle
+         enregistree dans les parametres. Cette valeur ne sert qu'au tout
+         premier chargement, avant que le serveur n'ait repondu une fois. */
+      border-top-color: var(--vex-splash-loader-color, #9ca3af);
+      border-right-color: var(--vex-splash-loader-color, #9ca3af);
+      animation: vex-splash-screen-spin 1s linear infinite;
+    }
+
+    @keyframes vex-splash-screen-spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .vex-splash-screen-title {
+      color: #111827;
+      font-size: 2rem;
+      font-weight: 600;
+      margin: 0;
+    }
+  </style>
+  <script>
+    /*
+     * Couleur du loader de demarrage.
+     *
+     * L'ecran de demarrage s'affiche avant qu'Angular ne soit charge : aucun
+     * service ne peut donc lui donner la couleur de l'etablissement a temps.
+     * On relit ici la derniere couleur connue, que ThemeColorService a mise de
+     * cote lors d'une visite precedente, pour que le loader soit deja a la
+     * bonne couleur des la premiere image affichee.
+     *
+     * Le serveur reste la reference : des qu'il a repondu, ThemeColorService
+     * rafraichit cette valeur. Ce cache n'avance rien, il evite seulement un
+     * changement de couleur visible au demarrage.
+     *
+     * A la toute premiere visite, rien n'est en cache : le loader garde le gris
+     * neutre du CSS plutot qu'une couleur qui ne serait pas celle de
+     * l'etablissement.
+     */
+    (function () {
+      try {
+        var couleur = localStorage.getItem('app_primary_color');
+
+        // Filtre volontairement strict : cette valeur part directement dans une
+        // propriete CSS, et n'accepter que la notation hexadecimale ferme la
+        // porte a toute autre construction.
+        if (couleur && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(couleur.trim())) {
+          document.documentElement.style.setProperty(
+            '--vex-splash-loader-color',
+            couleur.trim()
+          );
+        }
+      } catch (e) {
+        /* localStorage indisponible (navigation privee) : le gris neutre suffit */
+      }
+    })();
+  </script>
+
+  <div id="vex-splash-screen">
+    <div class="vex-splash-screen-logo-container">
+      <img height="100" width="100" loading="eager" src="assets/img/logo/logo.jpeg" />
+      <div class="vex-splash-screen-loader"></div>
+    </div>
+    <h1 class="vex-splash-screen-title">Gestion Scolaire</h1>
+  </div>
+
+  <vex-root></vex-root>
+</body>
+
+</html>

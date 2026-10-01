@@ -1,0 +1,44 @@
+<div class="min-h-screen w-full flex items-center justify-center p-6 bg-primary-600/5">
+  <div class="w-full max-w-md card text-center px-8 py-12 flex flex-col items-center gap-5">
+    <!-- Icône -->
+    <div
+      class="w-20 h-20 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:settings" class="icon-2xl"></mat-icon>
+    </div>
+
+    <!-- Titre -->
+    <h1 class="display-1 font-bold m-0 text-primary-600">
+      {{ titre }}
+    </h1>
+
+    <!-- Message -->
+    <p class="m-0 body-1 text-hint">
+      {{ message }}
+    </p>
+
+    <!-- Nom de l'établissement (optionnel) -->
+    <p *ngIf="etablissementNom" class="m-0 caption text-hint">
+      {{ etablissementNom }}
+    </p>
+
+    <!-- Action optionnelle -->
+    <button
+      *ngIf="showRetry"
+      mat-raised-button
+      color="primary"
+      type="button"
+      (click)="retry.emit()">
+      <mat-icon svgIcon="mat:autorenew" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+      Réessayer
+    </button>
+
+    <!-- Accès administrateur : se connecter pour désactiver la maintenance -->
+    <div class="mt-2 pt-4 border-t w-full flex flex-col items-center gap-2">
+      <p class="m-0 caption text-hint">Vous êtes administrateur ?</p>
+      <a mat-stroked-button color="primary" [routerLink]="loginLink">
+        <mat-icon svgIcon="mat:lock" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Connexion administrateur
+      </a>
+    </div>
+  </div>
+</div>

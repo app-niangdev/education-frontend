@@ -1,0 +1,161 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div
+      class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:layers"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">
+        {{ data.isEdit ? 'Modifier le niveau' : 'Nouveau niveau' }}
+      </h2>
+      <p class="m-0 caption text-hint">
+        Le niveau et ses frais scolaires se saisissent ensemble
+      </p>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <mat-dialog-content class="px-6 py-4">
+    <form [formGroup]="form" class="flex flex-col gap-4">
+
+      <!-- Identité du niveau -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Nom du niveau</mat-label>
+          <mat-icon matPrefix svgIcon="mat:layers" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="nom" placeholder="Ex: 6ème" />
+          <mat-error *ngIf="form.get('nom')?.hasError('required')">
+            Le nom est obligatoire
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Code</mat-label>
+          <mat-icon matPrefix svgIcon="mat:grade" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="code" placeholder="Ex: 6EME" />
+          <mat-error *ngIf="form.get('code')?.hasError('required')">
+            Le code est obligatoire
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Cycle</mat-label>
+        <mat-icon matPrefix svgIcon="mat:school" class="mr-2 text-hint icon-sm"></mat-icon>
+        <mat-select formControlName="cycle">
+          <mat-option *ngFor="let cycle of cycles" [value]="cycle.value">
+            {{ cycle.label }}
+          </mat-option>
+        </mat-select>
+        <mat-error *ngIf="form.get('cycle')?.hasError('required')">
+          Le cycle est obligatoire
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Frais scolaires : uniquement s'il y a une année à tarifer -->
+      <ng-container *ngIf="data.annee; else aucuneAnnee">
+
+        <div class="flex items-center gap-3 pt-2">
+          <mat-icon svgIcon="mat:receipt" class="text-primary-600 icon-sm flex-none"></mat-icon>
+          <h3 class="m-0 body-2 font-semibold">Frais scolaires</h3>
+          <span class="caption text-hint">Année {{ data.annee.nom }}</span>
+          <div class="flex-auto border-b"></div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Frais d'inscription (FCFA)</mat-label>
+            <mat-icon matPrefix svgIcon="mat:book" class="mr-2 text-hint icon-sm"></mat-icon>
+            <input matInput type="number" formControlName="montant_inscription" placeholder="0" min="0" />
+            <mat-error *ngIf="form.get('montant_inscription')?.hasError('required')">
+              Le montant est obligatoire
+            </mat-error>
+            <mat-error *ngIf="form.get('montant_inscription')?.hasError('min')">
+              Le montant doit être positif
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Mensualité (FCFA)</mat-label>
+            <mat-icon matPrefix svgIcon="mat:book" class="mr-2 text-hint icon-sm"></mat-icon>
+            <input matInput type="number" formControlName="montant_mensualite" placeholder="0" min="0" />
+            <mat-error *ngIf="form.get('montant_mensualite')?.hasError('required')">
+              Le montant est obligatoire
+            </mat-error>
+            <mat-error *ngIf="form.get('montant_mensualite')?.hasError('min')">
+              Le montant doit être positif
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Nombre de mensualités</mat-label>
+          <mat-icon matPrefix svgIcon="mat:date_range" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput type="number" formControlName="nombre_mensualites" placeholder="9" min="1" max="12" />
+          <mat-hint>9 en général, 8 si le 9ᵉ mois est intégré à l'inscription</mat-hint>
+          <mat-error *ngIf="form.get('nombre_mensualites')?.hasError('required')">
+            Le nombre de mensualités est obligatoire
+          </mat-error>
+          <mat-error
+            *ngIf="form.get('nombre_mensualites')?.hasError('min') || form.get('nombre_mensualites')?.hasError('max')">
+            Le nombre doit être entre 1 et 12
+          </mat-error>
+        </mat-form-field>
+
+        <div class="flex items-center justify-between px-1 py-2">
+          <div>
+            <p class="m-0 body-2 font-medium">9ᵉ mois intégré à l'inscription</p>
+            <p class="m-0 caption text-hint">Pratique fréquente au Sénégal</p>
+          </div>
+          <mat-slide-toggle formControlName="neuvieme_mois_inclus" color="primary"></mat-slide-toggle>
+        </div>
+
+        <!-- Aperçu du frais annuel, recalculé par le serveur à la sauvegarde -->
+        <div class="rounded-lg bg-primary-600/5 border border-primary-600/20 px-4 py-3 flex items-center justify-between">
+          <div>
+            <p class="m-0 caption text-hint">Frais annuel (calculé)</p>
+            <p class="m-0 caption text-hint">inscription + mensualité × nombre</p>
+          </div>
+          <p class="m-0 text-lg font-bold text-primary-600">{{ formatMontant(fraisAnnuel) }}</p>
+        </div>
+
+      </ng-container>
+
+      <!-- Sans année en cours, il n'y a rien à tarifer : le niveau se crée seul -->
+      <ng-template #aucuneAnnee>
+        <div class="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3">
+          <mat-icon svgIcon="mat:warning" class="text-amber-700 icon-sm flex-none mt-0.5"></mat-icon>
+          <div>
+            <p class="m-0 body-2 font-medium text-amber-900">Aucune année scolaire en cours</p>
+            <p class="m-0 caption text-amber-800">
+              Les frais scolaires ne peuvent pas être saisis maintenant. Le niveau
+              sera créé sans tarif : ouvrez une année scolaire, puis modifiez ce
+              niveau pour définir ses montants.
+            </p>
+          </div>
+        </div>
+      </ng-template>
+
+    </form>
+  </mat-dialog-content>
+
+  <!-- Actions -->
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">
+      Annuler
+    </button>
+
+    <button mat-raised-button color="primary" type="button" (click)="onSubmit()"
+      [disabled]="loading || form.invalid">
+      <ng-container *ngIf="!loading">
+        <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        {{ data.isEdit ? 'Modifier' : 'Créer' }}
+      </ng-container>
+      <ng-container *ngIf="loading">
+        <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        {{ data.isEdit ? 'Modification...' : 'Création...' }}
+      </ng-container>
+    </button>
+  </mat-dialog-actions>
+</div>

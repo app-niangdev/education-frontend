@@ -1,0 +1,48 @@
+<form [formGroup]="form" (ngSubmit)="enregistrer()">
+
+  <div mat-dialog-title class="flex items-center gap-3">
+    <mat-icon svgIcon="mat:edit" class="text-primary-600"></mat-icon>
+    <div>
+      <p class="m-0 title">Corriger l'anomalie</p>
+      <p class="m-0 caption text-hint">{{ eleve }} &bull; {{ contexte }}</p>
+    </div>
+  </div>
+
+  <mat-dialog-content class="flex flex-col gap-5 pt-2">
+
+    <div>
+      <p class="m-0 mb-3 body-2 font-medium">Statut</p>
+      <mat-radio-group formControlName="statut" class="flex flex-col gap-2">
+        <mat-radio-button *ngFor="let s of statuts" [value]="s.value">
+          {{ s.label }}
+        </mat-radio-button>
+      </mat-radio-group>
+    </div>
+
+    <mat-form-field appearance="outline" class="w-full" *ngIf="estRetard">
+      <mat-label>Minutes de retard</mat-label>
+      <input matInput type="number" min="0" max="240" formControlName="minutes_retard" />
+      <mat-error *ngIf="form.get('minutes_retard')?.hasError('max')">
+        Un retard ne peut pas dépasser 240 minutes.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Motif</mat-label>
+      <textarea matInput formControlName="motif" rows="3" placeholder="Optionnel"></textarea>
+      <mat-error *ngIf="form.get('motif')?.hasError('maxlength')">
+        Le motif ne peut pas dépasser 500 caractères.
+      </mat-error>
+    </mat-form-field>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="gap-2">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving">Annuler</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || saving">
+      <mat-spinner *ngIf="saving" diameter="18" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+      Enregistrer
+    </button>
+  </mat-dialog-actions>
+
+</form>

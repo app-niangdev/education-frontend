@@ -1,0 +1,47 @@
+<div [class.container]="isVerticalLayout$ | async" class="toolbar text-default w-full px-6 flex items-center">
+  <button (click)="openSidenav()" [class.hidden]="isDesktop$ | async" mat-icon-button type="button">
+    <mat-icon svgIcon="mat:menu"></mat-icon>
+  </button>
+
+  <a *ngIf="isVerticalLayout$ | async" [routerLink]="['/']" class="ltr:mr-4 rtl:ml-4 flex items-center">
+    <img alt="Logo" class="w-8 select-none" src="assets/img/logo/logo.jpeg" />
+    <h1 [class.hidden]="isDesktop$ | async" class="text-2xl font-bold tracking-wide ltr:pl-4 rtl:pr-4 m-0 select-none">
+      {{ title$ | async }}
+    </h1>
+  </a>
+
+  <mat-menu #addNewMenu="matMenu" [overlapTrigger]="false" xPosition="after" yPosition="below">
+  </mat-menu>
+
+  <div *ngIf="(isVerticalLayout$ | async) && (isNavbarInToolbar$ | async)" [class.hidden]="!(isDesktop$ | async)"
+    class="px-6 flex-none flex items-center">
+    <vex-navigation-item *ngFor="let item of navigationItems$ | async" [item]="item"></vex-navigation-item>
+  </div>
+
+  <span class="flex-1"></span>
+
+  <div class="-mx-1 flex items-center">
+    <div class="px-1 font-bold">
+      Le 21/12/2003
+    </div>
+    <div class="px-1">
+      <button (click)="openQuickpanel()" mat-icon-button type="button">
+        <mat-icon color="primary" svgIcon="mat:bookmarks"></mat-icon>
+      </button>
+    </div>
+
+    <!-- Messagerie tuteurs <-> services : le composant se masque lui-même
+         pour les rôles qui n'en ont pas l'usage. -->
+    <div class="px-1">
+      <vex-toolbar-messagerie></vex-toolbar-messagerie>
+    </div>
+
+    <div class="px-1">
+      <vex-toolbar-user></vex-toolbar-user>
+    </div>
+
+  </div>
+</div>
+
+<vex-navigation *ngIf="(isVerticalLayout$ | async) && (isNavbarBelowToolbar$ | async)"
+  [class.hidden]="!(isDesktop$ | async)"></vex-navigation>

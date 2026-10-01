@@ -1,0 +1,76 @@
+<vex-liste-page
+  icon="mat:timelapse"
+  titre="Années Scolaires"
+  titreCarte="Liste des années scolaires"
+  [sousTitre]="anneesScolaires().length + ' année(s)'"
+  [loading]="loading"
+  [vide]="anneesScolaires().length === 0">
+
+  <!-- Action en-tête -->
+  <button entete color="primary" mat-raised-button type="button" (click)="openAddDialog()"
+    class="hidden sm:inline-flex">
+    <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    Nouvelle année
+  </button>
+
+  <!-- Bannière : année en cours -->
+  <div avant *ngIf="anneeEnCours"
+    class="card border-l-4 border-green-500 bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4">
+    <div class="flex items-center gap-3 mb-1">
+      <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse block"></span>
+      <h3 class="title m-0 text-green-800">Année scolaire en cours</h3>
+    </div>
+    <p class="m-0 text-xl font-bold text-green-700">{{ getLabel(anneeEnCours) }}</p>
+    <p class="m-0 caption text-green-600">
+      Du {{ formatDate(anneeEnCours.date_debut) }} au {{ formatDate(anneeEnCours.date_fin) }}
+    </p>
+    <div class="mt-3">
+      <div class="flex justify-between caption text-green-700 mb-1">
+        <span>Progression</span>
+        <span>{{ getProgressPercentage(anneeEnCours) }}%</span>
+      </div>
+      <div class="w-full bg-green-200 rounded-full h-2">
+        <div class="bg-green-600 h-2 rounded-full transition-all duration-300"
+          [style.width.%]="getProgressPercentage(anneeEnCours)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let annee of anneesScolaires()"
+    [ligneClass]="annee.en_cours ? 'bg-green-50' : ''"
+    (modifier)="editAnnee(annee)"
+    [avecSupprimer]="isAdmin && !annee.en_cours" (supprimer)="deleteAnnee(annee)">
+    <div class="w-10 h-10 rounded-full flex-none flex items-center justify-center"
+      [ngClass]="annee.en_cours ? 'bg-green-100 text-green-600' : 'bg-primary-600/10 text-primary-600'">
+      <mat-icon svgIcon="mat:timelapse" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">{{ annee.nom }}</p>
+      <p class="m-0 caption text-hint">
+        {{ getLabel(annee) }} &bull;
+        Du {{ formatDate(annee.date_debut) }} au {{ formatDate(annee.date_fin) }}
+      </p>
+    </div>
+
+    <!-- Statut à droite -->
+    <span badge class="px-3 py-1 rounded-full text-xs font-medium border" [ngClass]="getStatutClass(annee)">
+      {{ getStatutLabel(annee) }}
+    </span>
+  </vex-liste-ligne>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:timelapse" class="icon-lg"></mat-icon>
+    </div>
+    <h3 class="title m-0">Aucune année scolaire</h3>
+    <p class="m-0 caption text-hint text-center">
+      Commencez par créer la première année scolaire de votre établissement.
+    </p>
+    <button color="primary" mat-raised-button type="button" (click)="openAddDialog()">
+      <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+      Créer une année scolaire
+    </button>
+  </div>
+</vex-liste-page>

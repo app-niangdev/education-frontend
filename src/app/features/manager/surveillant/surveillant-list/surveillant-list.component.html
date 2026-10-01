@@ -1,0 +1,96 @@
+<vex-liste-page
+  icon="mat:verified_user"
+  titre="Surveillants"
+  titreCarte="Liste des surveillants"
+  [sousTitre]="total + ' surveillant(s)'"
+  [loading]="loading"
+  [vide]="surveillants.length === 0"
+  [aDesFiltres]="true"
+  [meta]="meta"
+  [pageSizeOptions]="pageSizeOptions"
+  (pageChange)="onPageChange($event)">
+
+  <!-- Action en-tête -->
+  <button entete color="primary" mat-raised-button type="button" (click)="openAddDialog()"
+    class="hidden sm:inline-flex">
+    <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    Nouveau surveillant
+  </button>
+
+  <!-- Filtres -->
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-80" subscriptSizing="dynamic">
+    <mat-label>Rechercher</mat-label>
+    <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput [formControl]="searchCtrl" placeholder="Nom, matricule, zone, téléphone…" />
+  </mat-form-field>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let s of surveillants" ligneClass="cursor-pointer" (click)="editSurveillant(s)">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+      <mat-icon svgIcon="mat:verified_user" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">{{ fullName(s) }}</p>
+      <p class="m-0 caption text-hint">
+        <span class="font-medium text-primary-600">{{ s.matricule ?? '—' }}</span>
+        <ng-container *ngIf="s.user?.phone_one"> &bull; {{ s.user?.phone_one }}</ng-container>
+        <ng-container *ngIf="s.user?.email"> &bull; {{ s.user?.email }}</ng-container>
+      </p>
+    </div>
+
+    <!-- Zone / horaire + badge contrat à droite -->
+    <span secondaire class="caption text-hint" *ngIf="s.zone_surveillance || s.horaire">
+      <ng-container *ngIf="s.zone_surveillance">{{ s.zone_surveillance }}</ng-container>
+      <ng-container *ngIf="s.zone_surveillance && s.horaire"> &bull; </ng-container>
+      <ng-container *ngIf="s.horaire">{{ s.horaire }}</ng-container>
+    </span>
+    <span badge class="rounded-full px-2 py-1 text-xs font-medium"
+      [ngClass]="[badge(s.type_contrat).bgClass, badge(s.type_contrat).textClass]">
+      {{ badge(s.type_contrat).text }}
+    </span>
+
+    <button actions mat-icon-button type="button"
+      (click)="$event.stopPropagation()"
+      [matMenuTriggerFor]="actionsMenu" [matMenuTriggerData]="{ surveillant: s }">
+      <mat-icon svgIcon="mat:more_vert"></mat-icon>
+    </button>
+  </vex-liste-ligne>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:verified_user" class="icon-lg"></mat-icon>
+    </div>
+    <ng-container *ngIf="searchCtrl.value; else aucun">
+      <h3 class="title m-0">Aucun résultat</h3>
+      <p class="m-0 caption text-hint text-center">Aucun surveillant ne correspond à votre recherche.</p>
+    </ng-container>
+    <ng-template #aucun>
+      <h3 class="title m-0">Aucun surveillant</h3>
+      <p class="m-0 caption text-hint text-center">Ajoutez le premier surveillant de l'établissement.</p>
+      <button color="primary" mat-raised-button type="button" (click)="openAddDialog()">
+        <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Nouveau surveillant
+      </button>
+    </ng-template>
+  </div>
+</vex-liste-page>
+
+<!-- Menu actions -->
+<mat-menu #actionsMenu="matMenu" xPosition="before" yPosition="below">
+  <ng-template matMenuContent let-surveillant="surveillant">
+    <button mat-menu-item (click)="editSurveillant(surveillant)">
+      <mat-icon svgIcon="mat:edit" class="mr-2"></mat-icon>
+      <span>Modifier</span>
+    </button>
+    <button mat-menu-item (click)="reinitialiserAcces(surveillant)"
+      [disabled]="reinitialisationEnCours === surveillant.id">
+      <mat-icon svgIcon="mat:lock" class="mr-2"></mat-icon>
+      <span>Réinitialiser les accès</span>
+    </button>
+    <button mat-menu-item (click)="deleteSurveillant(surveillant)" class="text-red-600">
+      <mat-icon svgIcon="mat:delete" class="mr-2"></mat-icon>
+      <span>Supprimer</span>
+    </button>
+  </ng-template>
+</mat-menu>

@@ -1,0 +1,52 @@
+<div
+  [ngClass]="ligneClass"
+  class="relative flex flex-col gap-3 rounded-lg border border-gray-200 shadow-sm p-4
+         lg:flex-row lg:items-center lg:gap-4
+         lg:rounded-none lg:border-0 lg:shadow-none lg:p-0 lg:px-6 lg:py-4
+         transition-colors duration-150 lg:hover:bg-gray-50">
+  <!-- Contenu principal (marge à droite en carte pour laisser place aux actions) -->
+  <div class="flex items-center gap-4 flex-auto min-w-0 ltr:pr-12 rtl:pl-12 lg:pr-0 lg:pl-0">
+    <ng-content></ng-content>
+  </div>
+
+  <!-- Badges & infos secondaires : sous le contenu en carte, à droite en ligne -->
+  <div class="flex flex-wrap items-center gap-x-6 gap-y-1 flex-none lg:justify-end">
+    <ng-content select="[badge]"></ng-content>
+    <ng-content select="[secondaire]"></ng-content>
+  </div>
+
+  <!-- Actions : coin haut-droit en carte, en ligne à droite sur grand écran -->
+  <div class="absolute top-3 ltr:right-3 rtl:left-3 flex items-center gap-1 flex-none
+              lg:static lg:top-auto lg:right-auto lg:left-auto lg:gap-2 lg:justify-end">
+    <!-- Actions standard : icônes sur grand écran, menu ⋮ en carte -->
+    <ng-container *ngIf="aDesActionsStandard">
+      <button *ngIf="afficheModifier" mat-icon-button type="button" [matTooltip]="labelModifier"
+        class="hidden lg:inline-flex" (click)="onModifier($event)">
+        <mat-icon svgIcon="mat:edit" class="icon-sm"></mat-icon>
+      </button>
+      <button *ngIf="afficheSupprimer" mat-icon-button type="button" [matTooltip]="labelSupprimer"
+        class="hidden lg:inline-flex text-red-600" (click)="onSupprimer($event)">
+        <mat-icon svgIcon="mat:delete" class="icon-sm"></mat-icon>
+      </button>
+      <button mat-icon-button type="button" class="lg:hidden"
+        [matMenuTriggerFor]="menuStandard" (click)="$event.stopPropagation()">
+        <mat-icon svgIcon="mat:more_vert"></mat-icon>
+      </button>
+    </ng-container>
+
+    <!-- Actions personnalisées supplémentaires -->
+    <ng-content select="[actions]"></ng-content>
+  </div>
+</div>
+
+<!-- Menu ⋮ des actions standard (carte) -->
+<mat-menu #menuStandard="matMenu" xPosition="before" yPosition="below">
+  <button *ngIf="afficheModifier" mat-menu-item (click)="onModifier($event)">
+    <mat-icon svgIcon="mat:edit" class="mr-2"></mat-icon>
+    <span>{{ labelModifier }}</span>
+  </button>
+  <button *ngIf="afficheSupprimer" mat-menu-item (click)="onSupprimer($event)" class="text-red-600">
+    <mat-icon svgIcon="mat:delete" class="mr-2"></mat-icon>
+    <span>{{ labelSupprimer }}</span>
+  </button>
+</mat-menu>

@@ -1,0 +1,109 @@
+<vex-liste-page
+  icon="mat:assignment"
+  titre="Programme"
+  [titreCarte]="classe ? 'Matières enseignées — Classe ' + classe.nom : 'Matières enseignées'"
+  sousTitre="Coefficient et enseignant affecté, propres à cette classe"
+  [loading]="loading"
+  [vide]="programme.length === 0">
+
+  <!-- Retour -->
+  <button retour mat-icon-button type="button" (click)="goBack()" matTooltip="Retour aux classes">
+    <mat-icon svgIcon="mat:arrow_back"></mat-icon>
+  </button>
+
+  <!-- Action principale -->
+  <button entete color="primary" mat-raised-button type="button" (click)="openAddMatiere()"
+    class="hidden sm:inline-flex" [disabled]="!classe">
+    <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    Ajouter une matière
+  </button>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let cm of programme; let i = index">
+    <!-- Ordre : celui qu'imprimera le bulletin -->
+    <div class="flex items-center gap-1 flex-none">
+      <div class="flex flex-col">
+        <button mat-icon-button type="button" class="!w-6 !h-6 !leading-6"
+          matTooltip="Monter" [disabled]="i === 0 || reordering" (click)="deplacerMatiere(i, -1)">
+          <mat-icon svgIcon="mat:chevron_right" class="icon-xs -rotate-90"></mat-icon>
+        </button>
+        <button mat-icon-button type="button" class="!w-6 !h-6 !leading-6"
+          matTooltip="Descendre" [disabled]="i === programme.length - 1 || reordering" (click)="deplacerMatiere(i, 1)">
+          <mat-icon svgIcon="mat:chevron_right" class="icon-xs rotate-90"></mat-icon>
+        </button>
+      </div>
+      <span class="caption text-hint w-4 text-center">{{ i + 1 }}</span>
+    </div>
+
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+      <mat-icon svgIcon="mat:book" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">{{ cm.matiere?.nom }}</p>
+      <p class="m-0 caption text-hint">{{ cm.matiere?.code }}</p>
+    </div>
+
+    <!-- Coefficient + volume + enseignant à droite -->
+    <span badge class="inline-flex items-center justify-center min-w-8 h-8 px-2 rounded-full bg-primary-600/10 text-primary-600 font-bold">
+      Coef. {{ cm.coefficient }}
+    </span>
+    <span secondaire class="caption text-hint">
+      {{ cm.volume_horaire ? cm.volume_horaire + 'h' : '—' }}
+    </span>
+    <span secondaire>
+      <span *ngIf="enseignantNom(cm) as nom; else nonAffecte" class="flex items-center gap-2">
+        <mat-icon svgIcon="mat:account_circle" class="icon-sm text-primary-600"></mat-icon>
+        <span class="body-2 font-medium">{{ nom }}</span>
+      </span>
+      <ng-template #nonAffecte>
+        <button mat-stroked-button color="primary" type="button" (click)="manageAffectation(cm)" class="!py-1">
+          <mat-icon svgIcon="mat:person_add" class="ltr:mr-1 rtl:ml-1 icon-sm"></mat-icon>
+          Affecter
+        </button>
+      </ng-template>
+    </span>
+
+    <!-- Actions -->
+    <button actions mat-icon-button type="button"
+      [matMenuTriggerFor]="actionsMenu" [matMenuTriggerData]="{ cm: cm }">
+      <mat-icon svgIcon="mat:more_vert"></mat-icon>
+    </button>
+  </vex-liste-ligne>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:assignment" class="icon-lg"></mat-icon>
+    </div>
+    <h3 class="title m-0">Programme vide</h3>
+    <p class="m-0 caption text-hint text-center">
+      Ajoutez les matières enseignées dans cette classe et leur coefficient.
+    </p>
+    <button color="primary" mat-raised-button type="button" (click)="openAddMatiere()" [disabled]="!classe">
+      <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+      Ajouter une matière
+    </button>
+  </div>
+</vex-liste-page>
+
+<!-- Context menu -->
+<mat-menu #actionsMenu="matMenu" xPosition="before" yPosition="below">
+  <ng-template let-cm="cm" matMenuContent>
+    <button mat-menu-item (click)="editCoefficient(cm)">
+      <mat-icon svgIcon="mat:edit" class="mr-2"></mat-icon>
+      <span>Modifier le coefficient</span>
+    </button>
+    <button mat-menu-item (click)="manageAffectation(cm)">
+      <mat-icon svgIcon="mat:person" class="mr-2"></mat-icon>
+      <span>{{ cm.affectation ? "Changer l'enseignant" : 'Affecter un enseignant' }}</span>
+    </button>
+    <button mat-menu-item *ngIf="cm.affectation" (click)="removeAffectation(cm)" class="text-amber-700">
+      <mat-icon svgIcon="mat:cancel" class="mr-2"></mat-icon>
+      <span>Retirer l'enseignant</span>
+    </button>
+    <button mat-menu-item (click)="removeMatiere(cm)" class="text-red-600">
+      <mat-icon svgIcon="mat:delete" class="mr-2"></mat-icon>
+      <span>Retirer la matière</span>
+    </button>
+  </ng-template>
+</mat-menu>

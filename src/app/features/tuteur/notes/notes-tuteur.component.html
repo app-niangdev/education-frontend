@@ -1,0 +1,202 @@
+<div class="p-4 sm:p-6">
+
+  <!-- ══════════ EN-TÊTE ══════════ -->
+  <div class="releve-header" @fadeInUp>
+    <div class="releve-header__titre">
+      <mat-icon class="releve-header__icon" svgIcon="mat:school"></mat-icon>
+      <div>
+        <h1 class="text-xl sm:text-2xl font-semibold m-0">Résultats scolaires</h1>
+        <p class="text-hint text-sm m-0">
+          Les notes de vos enfants, mises à jour au fil des évaluations.
+        </p>
+      </div>
+    </div>
+
+    <!-- Les sélecteurs. Celui des enfants ne s'affiche qu'à partir de deux :
+         un tuteur qui n'en a qu'un n'a rien à choisir. -->
+    <div class="releve-header__filtres" *ngIf="!chargementEleves && eleves.length">
+      <mat-form-field *ngIf="eleves.length > 1" appearance="outline" class="filtre">
+        <mat-label>Enfant</mat-label>
+        <mat-icon matPrefix svgIcon="mat:person" class="mr-2 text-hint icon-sm"></mat-icon>
+        <mat-select [(ngModel)]="eleveId" (selectionChange)="onEleveChange()">
+          <mat-option *ngFor="let e of eleves" [value]="e.id">
+            {{ e.nom_complet }}<span *ngIf="e.classe"> — {{ e.classe }}</span>
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field *ngIf="releve?.periodes?.length" appearance="outline" class="filtre">
+        <mat-label>Période</mat-label>
+        <mat-icon matPrefix svgIcon="mat:date_range" class="mr-2 text-hint icon-sm"></mat-icon>
+        <mat-select [(ngModel)]="periodeId" (selectionChange)="onPeriodeChange()">
+          <mat-option *ngFor="let p of releve?.periodes" [value]="p.id">
+            {{ p.libelle }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <!-- ══════════ CHARGEMENT ══════════ -->
+  <div *ngIf="chargementEleves" class="etat-vide">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p class="text-hint text-sm mt-4">Chargement…</p>
+  </div>
+
+  <!-- ══════════ AUCUN ENFANT ══════════ -->
+  <div *ngIf="!chargementEleves && !eleves.length && !erreur" class="etat-vide" @fadeInUp>
+    <mat-icon class="etat-vide__icon" svgIcon="mat:school"></mat-icon>
+    <h3 class="text-lg font-medium m-0">Aucun élève rattaché à votre compte</h3>
+    <p class="text-hint text-sm mt-2 text-center max-w-md">
+      Si vous pensez qu'il s'agit d'une erreur, contactez l'administration de
+      l'établissement.
+    </p>
+  </div>
+
+  <!-- ══════════ ERREUR ══════════ -->
+  <div *ngIf="erreur && !eleves.length" class="etat-vide" @fadeInUp>
+    <mat-icon class="etat-vide__icon text-red-500" svgIcon="mat:error_outline"></mat-icon>
+    <p class="text-red-600 text-sm text-center">{{ erreur }}</p>
+  </div>
+
+  <!-- ══════════ RELEVÉ ══════════ -->
+  <ng-container *ngIf="eleves.length && !chargementEleves">
+
+    <div *ngIf="chargementReleve" class="etat-vide">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+
+    <ng-container *ngIf="!chargementReleve && releve">
+
+      <!-- ── Bandeau élève + synthèse ── -->
+      <div class="synthese" @scaleIn>
+        <div class="synthese__eleve">
+          <img *ngIf="releve.eleve.photo" [src]="releve.eleve.photo" [alt]="releve.eleve.nom_complet"
+            class="synthese__photo" />
+          <div *ngIf="!releve.eleve.photo" class="synthese__photo synthese__photo--vide">
+            <mat-icon svgIcon="mat:person"></mat-icon>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold m-0">{{ releve.eleve.nom_complet }}</h2>
+            <p class="text-hint text-sm m-0">
+              <span *ngIf="releve.eleve.classe">{{ releve.eleve.classe }}</span>
+              <span *ngIf="releve.eleve.classe && releve.periode"> · </span>
+              <span *ngIf="releve.periode">{{ releve.periode.libelle }}</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- La moyenne générale, calculée comme sur le bulletin. -->
+        <div class="synthese__chiffres" *ngIf="releve.synthese">
+          <div class="chiffre chiffre--principal">
+            <span class="chiffre__valeur" [ngClass]="classeMoyenne(releve.synthese.moyenne_generale)">
+              {{ afficherNote(releve.synthese.moyenne_generale) }}
+            </span>
+            <span class="chiffre__libelle">Moyenne générale</span>
+          </div>
+          <div class="chiffre" *ngIf="releve.synthese.mention">
+            <span class="chiffre__valeur chiffre__valeur--texte">{{ releve.synthese.mention }}</span>
+            <span class="chiffre__libelle">Mention</span>
+          </div>
+          <div class="chiffre">
+            <span class="chiffre__valeur chiffre__valeur--texte">{{ nbMatieresNotees }}</span>
+            <span class="chiffre__libelle">Matières notées</span>
+          </div>
+        </div>
+
+        <!-- Aucune note encore saisie : on le dit, plutôt que d'afficher un zéro. -->
+        <div class="synthese__attente" *ngIf="!releve.synthese && releve.periode">
+          <mat-icon svgIcon="mat:hourglass_empty" class="text-hint"></mat-icon>
+          <span class="text-hint text-sm">Aucune note saisie pour cette période.</span>
+        </div>
+      </div>
+
+      <!-- ── Aucune période définie ── -->
+      <div *ngIf="!releve.periode" class="etat-vide" @fadeInUp>
+        <mat-icon class="etat-vide__icon" svgIcon="mat:date_range"></mat-icon>
+        <h3 class="text-lg font-medium m-0">Aucune période ouverte</h3>
+        <p class="text-hint text-sm mt-2 text-center max-w-md">
+          L'année scolaire de cette classe n'a pas encore de période définie.
+        </p>
+      </div>
+
+      <!-- ── Les matières ── -->
+      <div class="matieres" *ngIf="releve.periode && releve.matieres.length">
+        <div class="matiere" *ngFor="let m of releve.matieres; trackBy: suivreMatiere"
+          [class.matiere--non-notee]="!m.notee" @fadeInRight>
+
+          <div class="matiere__entete">
+            <div class="matiere__identite">
+              <h3 class="matiere__nom">{{ m.matiere }}</h3>
+              <span class="matiere__coef">Coefficient {{ m.coefficient }}</span>
+            </div>
+
+            <div class="matiere__moyenne">
+              <span class="matiere__moyenne-valeur" [ngClass]="classeMoyenne(m.moyenne)">
+                {{ afficherNote(m.moyenne) }}
+              </span>
+              <span class="matiere__moyenne-libelle">Moyenne</span>
+            </div>
+          </div>
+
+          <!-- Le détail des moyennes intermédiaires, comme sur le bulletin. -->
+          <div class="matiere__details" *ngIf="m.notee">
+            <div class="detail">
+              <span class="detail__libelle">Devoirs</span>
+              <span class="detail__valeur">{{ afficherNote(m.moy_devoirs) }}</span>
+            </div>
+            <div class="detail">
+              <span class="detail__libelle">Composition</span>
+              <span class="detail__valeur">{{ afficherNote(m.composition) }}</span>
+            </div>
+            <div class="detail" *ngIf="m.appreciation">
+              <span class="detail__libelle">Appréciation</span>
+              <span class="detail__valeur detail__valeur--texte">{{ m.appreciation }}</span>
+            </div>
+          </div>
+
+          <!-- Le détail évaluation par évaluation, replié par défaut : c'est la
+               moyenne qui intéresse d'abord, le détail vient ensuite. -->
+          <mat-expansion-panel *ngIf="m.evaluations.length" class="matiere__evaluations" hideToggle="false">
+            <mat-expansion-panel-header>
+              <mat-panel-title class="text-sm">
+                {{ m.evaluations.length }} évaluation{{ m.evaluations.length > 1 ? 's' : '' }}
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <ul class="evals">
+              <li class="eval" *ngFor="let e of m.evaluations; trackBy: suivreEvaluation">
+                <div class="eval__gauche">
+                  <span class="eval__titre">{{ e.titre }}</span>
+                  <span class="eval__meta">
+                    {{ e.type }}<span *ngIf="e.date"> · {{ e.date | date: 'dd/MM/yyyy' }}</span>
+                  </span>
+                </div>
+                <span class="eval__note" [class.eval__note--absent]="e.absent"
+                  [class.eval__note--attente]="!e.saisie">
+                  {{ noteEvaluation(e) }}
+                </span>
+              </li>
+            </ul>
+          </mat-expansion-panel>
+
+          <!-- Matière au programme mais sans aucune note. -->
+          <p class="matiere__vide" *ngIf="!m.notee">
+            Aucune note pour l'instant.
+          </p>
+        </div>
+      </div>
+
+      <!-- ── Programme vide ── -->
+      <div *ngIf="releve.periode && !releve.matieres.length" class="etat-vide" @fadeInUp>
+        <mat-icon class="etat-vide__icon" svgIcon="mat:book"></mat-icon>
+        <h3 class="text-lg font-medium m-0">Aucune matière au programme</h3>
+        <p class="text-hint text-sm mt-2 text-center max-w-md">
+          Le programme de cette classe n'a pas encore été renseigné.
+        </p>
+      </div>
+
+    </ng-container>
+  </ng-container>
+
+</div>

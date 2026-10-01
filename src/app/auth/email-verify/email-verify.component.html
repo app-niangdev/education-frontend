@@ -1,0 +1,100 @@
+<!-- Loading spinner -->
+<div *ngIf="isLoading" class="bg-pattern w-full h-full flex flex-col items-center justify-center">
+  <mat-spinner></mat-spinner>
+  <p class="mt-4 text-gray-600">Vérification de votre email en cours...</p>
+</div>
+
+<!-- Success message -->
+<div *ngIf="!isLoading && isVerified" class="bg-pattern w-full h-full flex flex-col items-center justify-center">
+  <div [@fadeInUp] class="card overflow-hidden w-full max-w-md">
+    <div class="flex flex-col items-center justify-center space-y-4 p-8">
+      <mat-icon class="icon-5xl text-green-500" svgIcon="mat:check_circle"></mat-icon>
+
+      <h2 class="text-2xl font-semibold text-gray-800">Email vérifié !</h2>
+
+      <p class="text-center text-gray-600">
+        {{successMessage}}
+      </p>
+
+      <p class="text-sm text-gray-500">
+        Redirection automatique vers la page de connexion...
+      </p>
+
+      <button (click)="goToLogin()" class="w-full mt-4" color="primary" mat-raised-button type="button">
+        <span>Aller à la page de connexion</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Error message -->
+<div *ngIf="!isLoading && !isVerified && error" class="bg-pattern w-full h-full flex flex-col items-center justify-center">
+  <div [@fadeInUp] class="card overflow-hidden w-full max-w-md">
+    <div class="flex flex-col items-center justify-center space-y-4 p-8">
+      <mat-icon class="icon-5xl text-red-500" svgIcon="mat:error"></mat-icon>
+
+      <h2 class="text-2xl font-semibold text-gray-800">Erreur de vérification</h2>
+
+      <p class="text-center text-red-600 font-medium">
+        {{error}}
+      </p>
+
+      <p class="text-sm text-gray-500 text-center">
+        Le lien de vérification a peut-être expiré ou est invalide.
+      </p>
+
+      <!-- Formulaire de saisie email -->
+      <div *ngIf="showEmailInput" class="w-full mt-4">
+        <mat-form-field class="w-full">
+          <mat-label>Adresse email</mat-label>
+          <input matInput [formControl]="emailControl" type="email" placeholder="votre@email.com">
+          <mat-icon matPrefix svgIcon="mat:email"></mat-icon>
+          <mat-error *ngIf="emailControl.hasError('required')">
+            L'email est requis
+          </mat-error>
+          <mat-error *ngIf="emailControl.hasError('email')">
+            Email invalide
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="flex flex-col w-full gap-2 mt-4">
+        <button *ngIf="!showEmailInput" (click)="showEmailInputForm()" class="w-full" color="primary" mat-raised-button type="button">
+          <span>Renvoyer le lien de vérification</span>
+        </button>
+
+        <button *ngIf="showEmailInput" (click)="resendVerificationEmail()" [disabled]="emailControl.invalid || isResending" class="w-full" color="primary" mat-raised-button type="button">
+          <mat-icon *ngIf="isResending" class="animate-spin" svgIcon="mat:autorenew"></mat-icon>
+          <span>{{ isResending ? 'Envoi en cours...' : 'Envoyer' }}</span>
+        </button>
+
+        <button (click)="goToLogin()" class="w-full" mat-stroked-button type="button">
+          <span>Retour à la connexion</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success message after resend -->
+<div *ngIf="!isLoading && !isVerified && successMessage && !error" class="bg-pattern w-full h-full flex flex-col items-center justify-center">
+  <div [@fadeInUp] class="card overflow-hidden w-full max-w-md">
+    <div class="flex flex-col items-center justify-center space-y-4 p-8">
+      <mat-icon class="icon-5xl text-blue-500" svgIcon="mat:mail"></mat-icon>
+
+      <h2 class="text-2xl font-semibold text-gray-800">Email envoyé</h2>
+
+      <p class="text-center text-gray-600">
+        {{successMessage}}
+      </p>
+
+      <p class="text-sm text-gray-500 text-center">
+        Veuillez vérifier votre boîte de réception et suivre le lien de vérification.
+      </p>
+
+      <button (click)="goToLogin()" class="w-full mt-4" color="primary" mat-raised-button type="button">
+        <span>Retour à la connexion</span>
+      </button>
+    </div>
+  </div>
+</div>

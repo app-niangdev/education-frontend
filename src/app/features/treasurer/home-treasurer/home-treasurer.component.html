@@ -1,0 +1,176 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- Header -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0">
+      <h2 class="display-1 font-bold m-0 flex items-center w-full">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:receipt"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">
+          Tableau de bord — Trésorerie
+          <span *ngIf="stats()?.annee_scolaire" class="caption text-hint font-normal block">
+            Année scolaire {{ stats()?.annee_scolaire?.nom }}
+          </span>
+        </span>
+      </h2>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="flex-auto flex items-center justify-center p-12">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <!-- Empty -->
+  <div *ngIf="!loading && !stats()" class="flex-auto flex flex-col items-center justify-center gap-3 p-12">
+    <mat-icon svgIcon="mat:receipt" class="icon-lg text-hint"></mat-icon>
+    <p class="m-0 text-hint">Aucune statistique disponible.</p>
+  </div>
+
+  <div *ngIf="!loading && stats() as s" class="container-fluid px-6 pb-8">
+
+    <!-- KPI d'encaissement -->
+    <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="card p-5 flex items-center gap-4" @scaleIn>
+        <div class="w-12 h-12 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+          <mat-icon svgIcon="mat:access_time"></mat-icon>
+        </div>
+        <div>
+          <p class="m-0 display-1 font-bold leading-none">{{ formatMontant(s.encaissements.aujourdhui.montant) }} <span class="body-2 text-hint font-normal">FCFA</span></p>
+          <p class="m-0 caption text-hint">Encaissé aujourd'hui · {{ s.encaissements.aujourdhui.nombre }} reçu(s)</p>
+        </div>
+      </div>
+      <div class="card p-5 flex items-center gap-4" @scaleIn>
+        <div class="w-12 h-12 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+          <mat-icon svgIcon="mat:date_range"></mat-icon>
+        </div>
+        <div>
+          <p class="m-0 display-1 font-bold leading-none">{{ formatMontant(s.encaissements.ce_mois.montant) }} <span class="body-2 text-hint font-normal">FCFA</span></p>
+          <p class="m-0 caption text-hint">Ce mois-ci · {{ s.encaissements.ce_mois.nombre }} reçu(s)</p>
+        </div>
+      </div>
+      <div class="card p-5 flex items-center gap-4" @scaleIn>
+        <div class="w-12 h-12 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+          <mat-icon svgIcon="mat:assessment"></mat-icon>
+        </div>
+        <div>
+          <p class="m-0 display-1 font-bold leading-none">{{ formatMontant(s.encaissements.annee.montant) }} <span class="body-2 text-hint font-normal">FCFA</span></p>
+          <p class="m-0 caption text-hint">Total de l'année · {{ s.encaissements.annee.nombre }} reçu(s)</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Recouvrement -->
+      <div class="card p-6">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <h3 class="title m-0 mb-1">Recouvrement</h3>
+            <p class="caption text-hint m-0">Inscriptions + mensualités — année en cours</p>
+          </div>
+          <svg viewBox="0 0 42 42" class="w-20 h-20 flex-none" role="img" aria-label="Taux de recouvrement">
+            <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="var(--viz-track)" stroke-width="5"></circle>
+            <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="var(--viz-primary)" stroke-width="5"
+              [attr.stroke-dasharray]="gaugeDash" stroke-dashoffset="25" stroke-linecap="round"></circle>
+            <text x="21" y="23" text-anchor="middle" class="gauge-value">{{ s.finances.taux_recouvrement }}%</text>
+          </svg>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <div *ngFor="let bloc of ['inscriptions', 'mensualites', 'total']">
+            <div class="flex items-center justify-between mb-1">
+              <span class="body-2 font-medium capitalize">{{ bloc === 'total' ? 'Total' : bloc }}</span>
+              <span class="caption text-hint">
+                {{ formatMontant($any(s.finances)[bloc].encaisse) }} /
+                {{ formatMontant($any(s.finances)[bloc].du) }} FCFA
+              </span>
+            </div>
+            <div class="h-2.5 rounded-full bg-gray-200 overflow-hidden">
+              <div class="h-full rounded-full"
+                [style.background]="bloc === 'total' ? 'var(--viz-primary)' : 'var(--viz-c2)'"
+                [style.width.%]="pctEncaisse($any(bloc))"></div>
+            </div>
+            <p class="m-0 mt-1 caption text-hint">
+              Reste : <span class="font-medium text-primary-600">{{ formatMontant($any(s.finances)[bloc].reste) }} FCFA</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Répartition par mode de paiement -->
+      <div class="card p-6">
+        <h3 class="title m-0 mb-1">Encaissements par mode de paiement</h3>
+        <p class="caption text-hint m-0 mb-4">{{ formatMontant(totalModes) }} FCFA au total</p>
+
+        <ng-container *ngIf="totalModes > 0; else aucunPaiement">
+          <!-- Barre empilée -->
+          <div class="flex h-4 rounded-full overflow-hidden mb-5">
+            <div *ngFor="let m of modeBars()" class="h-full" [style.width.%]="m.pct"
+              [style.background]="m.varName" [matTooltip]="m.label + ' : ' + formatMontant(m.montant) + ' FCFA'">
+            </div>
+          </div>
+
+          <!-- Légende + montants (labels directs) -->
+          <div class="grid grid-cols-2 gap-3">
+            <div *ngFor="let m of modeBars()" class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-sm flex-none" [style.background]="m.varName"></span>
+              <span class="body-2 font-medium">{{ m.label }}</span>
+              <span class="caption text-hint ml-auto">{{ formatMontant(m.montant) }} · {{ m.pct }}%</span>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #aucunPaiement>
+          <p class="caption text-hint m-0">Aucun encaissement enregistré.</p>
+        </ng-template>
+      </div>
+
+      <!-- Mensualités par statut -->
+      <div class="card p-6">
+        <h3 class="title m-0 mb-1">État des mensualités</h3>
+        <p class="caption text-hint m-0 mb-4">{{ s.mensualites_par_statut.total }} mensualité(s) au total</p>
+
+        <div class="grid grid-cols-3 gap-4">
+          <div class="rounded-lg border border-green-200 bg-green-50 px-3 py-4 text-center">
+            <mat-icon svgIcon="mat:check_circle" class="icon-sm text-green-600"></mat-icon>
+            <p class="m-0 mt-1 display-1 font-bold text-green-700">{{ s.mensualites_par_statut.paye }}</p>
+            <p class="m-0 caption text-green-800">Payées · {{ pctMensualite('paye') }}%</p>
+          </div>
+          <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-4 text-center">
+            <mat-icon svgIcon="mat:hourglass_empty" class="icon-sm text-amber-600"></mat-icon>
+            <p class="m-0 mt-1 display-1 font-bold text-amber-700">{{ s.mensualites_par_statut.partiel }}</p>
+            <p class="m-0 caption text-amber-800">Partielles · {{ pctMensualite('partiel') }}%</p>
+          </div>
+          <div class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-4 text-center">
+            <mat-icon svgIcon="mat:cancel" class="icon-sm text-gray-500"></mat-icon>
+            <p class="m-0 mt-1 display-1 font-bold text-gray-700">{{ s.mensualites_par_statut.non_paye }}</p>
+            <p class="m-0 caption text-gray-600">Non payées · {{ pctMensualite('non_paye') }}%</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reste à encaisser -->
+      <div class="card p-6">
+        <h3 class="title m-0 mb-1">Reste à encaisser</h3>
+        <p class="caption text-hint m-0 mb-4">Dossiers en attente de règlement</p>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="rounded-lg border bg-gray-50 px-4 py-5 text-center">
+            <mat-icon svgIcon="mat:assignment" class="text-primary-600"></mat-icon>
+            <p class="m-0 mt-2 display-1 font-bold">{{ s.a_encaisser.inscriptions }}</p>
+            <p class="m-0 caption text-hint">Inscriptions non soldées</p>
+          </div>
+          <div class="rounded-lg border bg-gray-50 px-4 py-5 text-center">
+            <mat-icon svgIcon="mat:calendar_today" class="text-primary-600"></mat-icon>
+            <p class="m-0 mt-2 display-1 font-bold">{{ s.a_encaisser.mensualites }}</p>
+            <p class="m-0 caption text-hint">Mensualités non soldées</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>

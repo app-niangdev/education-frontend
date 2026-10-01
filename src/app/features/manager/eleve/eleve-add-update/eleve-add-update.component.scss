@@ -1,0 +1,134 @@
+// Le stepper occupe toute la carte : on lui rend la respiration que la
+// modale lui donnait auparavant.
+.eleve-stepper {
+  ::ng-deep .mat-horizontal-content-container {
+    padding: 0 1.5rem 1.5rem;
+  }
+
+  /**
+   * L'en-tete sert de barre de progression : il doit dire d'un coup d'oeil
+   * ou en est la saisie. Les couleurs viennent des variables du theme
+   * (`--vex-color-primary-*`), donc elles suivent la couleur choisie par
+   * l'etablissement dans Parametrage.
+   */
+  ::ng-deep .mat-horizontal-stepper-header-container {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgb(var(--vex-color-primary-600) / 0.12);
+    background: linear-gradient(
+      to bottom,
+      rgb(var(--vex-color-primary-600) / 0.04),
+      transparent
+    );
+  }
+
+  ::ng-deep .mat-step-header {
+    border-radius: var(--vex-border-radius, 0.25rem);
+    transition: background-color 200ms ease;
+
+    // Material fixe une hauteur de 72px ; on la resserre un peu pour que
+    // l'en-tete pese moins face au formulaire.
+    height: 64px;
+
+    &:hover:not([aria-disabled='true']),
+    &.cdk-keyboard-focused,
+    &.cdk-program-focused {
+      background-color: rgb(var(--vex-color-primary-600) / 0.06);
+    }
+
+    // L'etape courante : la seule sur laquelle on agit, donc la plus lisible.
+    &[aria-selected='true'] {
+      background-color: rgb(var(--vex-color-primary-600) / 0.08);
+
+      .mat-step-label {
+        font-weight: 600;
+      }
+    }
+  }
+
+  /**
+   * Pastilles numerotees. Material n'expose pas de token pour l'etat « a
+   * venir » : on le peint ici pour distinguer trois etats au lieu de deux —
+   * fait, en cours, a venir.
+   */
+  ::ng-deep .mat-step-icon {
+    width: 32px;
+    height: 32px;
+    transition: background-color 200ms ease, color 200ms ease;
+
+    // A venir : discret, mais pas invisible.
+    background-color: rgb(var(--vex-color-primary-600) / 0.12);
+    color: rgb(var(--vex-color-primary-700));
+  }
+
+  // En cours : pleine couleur, avec un halo qui la detache des autres.
+  ::ng-deep .mat-step-icon-selected {
+    background-color: rgb(var(--vex-color-primary-600));
+    color: rgb(var(--vex-color-on-primary-600));
+    box-shadow: 0 0 0 4px rgb(var(--vex-color-primary-600) / 0.16);
+  }
+
+  // Terminee : la meme couleur en plus sourd, l'etape n'appelle plus l'action.
+  ::ng-deep .mat-step-icon-state-done {
+    background-color: rgb(var(--vex-color-primary-600) / 0.85);
+    color: rgb(var(--vex-color-on-primary-600));
+    box-shadow: none;
+  }
+
+  // En erreur : Material bascule l'icone en `warn`, on retire juste le halo
+  // primaire qui jurerait avec le rouge.
+  ::ng-deep .mat-step-icon-state-error {
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  ::ng-deep .mat-step-label {
+    transition: color 200ms ease;
+
+    &.mat-step-label-selected {
+      color: rgb(var(--vex-color-primary-700));
+    }
+  }
+
+  /**
+   * Le trait entre deux etapes. Material le laisse gris en permanence ; le
+   * colorer jusqu'a l'etape courante donne la lecture « barre de progression »
+   * plutot qu'une simple liste d'onglets.
+   */
+  ::ng-deep .mat-stepper-horizontal-line {
+    border-top-width: 2px;
+    border-top-color: rgb(var(--vex-color-primary-600) / 0.12);
+    transition: border-top-color 200ms ease;
+    margin: 0 0.5rem;
+  }
+
+  // Les traits deja parcourus, colores via une classe posee par le composant :
+  // `:has()` aurait ete plus direct, mais la cible du projet inclut Firefox 115
+  // et iOS 16.3, qui ne le connaissent pas encore.
+  ::ng-deep .mat-stepper-horizontal-line.eleve-stepper-line-done {
+    border-top-color: rgb(var(--vex-color-primary-600) / 0.55);
+  }
+
+  /**
+   * Etape encore inaccessible : le curseur annonce le refus avant le clic.
+   * On evite `pointer-events: none`, qui masquerait aussi le message
+   * d'explication et laisserait passer la navigation au clavier — c'est
+   * `onEtapeChange` qui fait autorite sur le blocage.
+   */
+  ::ng-deep .mat-step-header[aria-disabled='true'] {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  // Sur mobile, les quatre libelles ne tiennent pas : Material les masque
+  // deja, on resserre l'en-tete pour ne pas garder une bande vide.
+  @media (max-width: 599px) {
+    ::ng-deep .mat-horizontal-stepper-header-container {
+      padding: 0.25rem;
+    }
+
+    ::ng-deep .mat-step-header {
+      height: 56px;
+      padding: 0 0.5rem;
+    }
+  }
+}

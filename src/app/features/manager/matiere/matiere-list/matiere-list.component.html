@@ -1,0 +1,66 @@
+<vex-liste-page
+  icon="mat:book"
+  titre="Matières"
+  titreCarte="Catalogue des matières"
+  sousTitre="Les coefficients sont définis par classe"
+  [loading]="loading"
+  [vide]="matieres().length === 0"
+  [aDesFiltres]="true"
+  [meta]="meta()"
+  [pageSizeOptions]="meta().pageSizeOptions ?? [5, 10, 25, 50]"
+  (pageChange)="onPageChange($event)">
+
+  <!-- Action dans l'en-tête de page -->
+  <button entete color="primary" mat-raised-button type="button" (click)="openAddDialog()"
+    class="hidden sm:inline-flex">
+    <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    Nouvelle matière
+  </button>
+
+  <!-- Filtres -->
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-72" subscriptSizing="dynamic">
+    <mat-label>Rechercher</mat-label>
+    <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput [formControl]="searchCtrl" placeholder="Nom ou code" />
+  </mat-form-field>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let matiere of matieres()"
+    (modifier)="editMatiere(matiere)" (supprimer)="deleteMatiere(matiere)">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+      <mat-icon svgIcon="mat:book" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">{{ matiere.nom }}</p>
+      <p class="m-0 caption text-hint">
+        Code : <span class="font-medium text-primary-600">{{ matiere.code }}</span>
+        <ng-container *ngIf="matiere.description"> &bull; {{ matiere.description }}</ng-container>
+      </p>
+    </div>
+  </vex-liste-ligne>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:book" class="icon-lg"></mat-icon>
+    </div>
+
+    <ng-container *ngIf="searchCtrl.value; else aucuneMatiere">
+      <h3 class="title m-0">Aucun résultat</h3>
+      <p class="m-0 caption text-hint text-center">
+        Aucune matière ne correspond à « {{ searchCtrl.value }} ».
+      </p>
+    </ng-container>
+
+    <ng-template #aucuneMatiere>
+      <h3 class="title m-0">Aucune matière</h3>
+      <p class="m-0 caption text-hint text-center">
+        Commencez par créer les matières du catalogue (Français, Math, Histoire-Géo…).
+      </p>
+      <button color="primary" mat-raised-button type="button" (click)="openAddDialog()">
+        <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Créer une matière
+      </button>
+    </ng-template>
+  </div>
+</vex-liste-page>

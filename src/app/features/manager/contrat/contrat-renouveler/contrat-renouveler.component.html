@@ -1,0 +1,50 @@
+<div>
+
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:autorenew"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">Renouveler le contrat</h2>
+      <p class="m-0 caption text-hint">
+        Prend la suite de {{ data.contrat.numero_contrat }} — {{ employe }}
+      </p>
+    </div>
+  </div>
+
+  <mat-dialog-content class="px-6 py-4">
+
+    <div class="flex items-start gap-3 rounded p-3 mb-5 bg-primary-600/5 text-hint caption">
+      <mat-icon svgIcon="mat:info" class="icon-sm flex-none mt-0.5"></mat-icon>
+      <span>
+        Un nouveau contrat sera créé avec les conditions ci-dessous, et le
+        contrat <strong>{{ data.contrat.numero_contrat }}</strong> sera clos.
+        L'historique des deux reste consultable.
+      </span>
+    </div>
+
+    <!-- Les conditions reprennent celles du contrat précédent : seules les
+         dates changent le plus souvent. -->
+    <vex-contrat-form [form]="form" fonctionParDefaut=""></vex-contrat-form>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">
+      Annuler
+    </button>
+
+    <button mat-raised-button color="primary" type="button" (click)="onSubmit()"
+      [disabled]="loading || form.invalid">
+      <ng-container *ngIf="!loading">
+        <mat-icon svgIcon="mat:autorenew" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Renouveler
+      </ng-container>
+      <ng-container *ngIf="loading">
+        <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        Renouvellement…
+      </ng-container>
+    </button>
+  </mat-dialog-actions>
+</div>

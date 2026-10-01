@@ -1,0 +1,149 @@
+<vex-liste-page
+  icon="mat:assignment_turned_in"
+  titre="Paiements"
+  titreCarte="Historique des paiements"
+  sousTitre="Versements encaissés — année en cours"
+  [loading]="loading"
+  [vide]="listeVide"
+  [aDesFiltres]="true"
+  [meta]="metaCourant"
+  [pageSizeOptions]="metaCourant.pageSizeOptions ?? [5, 10, 25, 50]"
+  (pageChange)="onPageChange($event)">
+
+  <!-- Recherche -->
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-80" subscriptSizing="dynamic">
+    <mat-label>Rechercher</mat-label>
+    <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput [formControl]="searchCtrl"
+      [placeholder]="onglet === 'inscription'
+        ? 'N° reçu, transaction, élève, matricule'
+        : 'N° facture, transaction, élève, matricule'" />
+  </mat-form-field>
+
+  <!--
+    Deux natures d'encaissement, deux justificatifs, deux numérotations : les
+    frais d'inscription (REC-xxx) et les mensualités (FAM-xxx). Les onglets
+    évitent de les mêler dans une liste unique.
+  -->
+  <div avantListe class="px-6 border-b flex items-center gap-1">
+    <button type="button" (click)="changerOnglet('inscription')"
+      class="px-4 py-3 border-b-2 transition-colors duration-150 body-2"
+      [ngClass]="onglet === 'inscription'
+        ? 'border-primary-600 text-primary-600 font-medium'
+        : 'border-transparent text-hint hover:text-primary-600'">
+      Frais d'inscription
+    </button>
+    <button type="button" (click)="changerOnglet('mensualite')"
+      class="px-4 py-3 border-b-2 transition-colors duration-150 body-2"
+      [ngClass]="onglet === 'mensualite'
+        ? 'border-primary-600 text-primary-600 font-medium'
+        : 'border-transparent text-hint hover:text-primary-600'">
+      Mensualités
+    </button>
+  </div>
+
+  <!-- Lignes — frais d'inscription -->
+  <ng-container *ngIf="onglet === 'inscription'">
+    <vex-liste-ligne *ngFor="let paiement of paiements()">
+      <div class="w-10 h-10 rounded-full bg-green-100 text-green-700 flex-none flex items-center justify-center">
+        <mat-icon svgIcon="mat:assignment_turned_in" class="icon-sm"></mat-icon>
+      </div>
+      <div class="min-w-0">
+        <p class="m-0 body-1 font-semibold truncate">
+          {{ paiement.inscription?.eleve?.nom_complet ?? '—' }}
+          <span class="caption text-hint font-normal">({{ paiement.inscription?.eleve?.matricule }})</span>
+        </p>
+        <p class="m-0 caption text-hint">
+          <span class="font-medium text-primary-600">{{ paiement.numero_recu }}</span>
+          &bull; <span>{{ paiement.inscription?.numero_inscription }}</span>
+          &bull; <span>{{ paiement.date_paiement | date : 'dd/MM/yyyy' }}</span>
+          <ng-container *ngIf="paiement.utilisateur"> &bull; <span>par {{ paiement.utilisateur.full_name }}</span></ng-container>
+        </p>
+      </div>
+
+      <!-- Mode + montant à droite -->
+      <span badge class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+        {{ modeLabel(paiement) }}
+      </span>
+      <span secondaire class="flex flex-col items-end">
+        <span class="body-1 font-semibold text-green-700 whitespace-nowrap">{{ paiement.montant | number }} FCFA</span>
+        <span class="caption text-hint" *ngIf="paiement.numero_transaction">Réf. {{ paiement.numero_transaction }}</span>
+      </span>
+
+      <!-- Justificatif : reçu si soldé, décharge sinon -->
+      <button actions mat-icon-button type="button" [disabled]="downloadingId !== null"
+        [matTooltip]="'Imprimer : ' + libelleDocument(paiement)" (click)="telechargerRecu(paiement)">
+        <mat-spinner *ngIf="downloadingId === paiement.id; else iconeRecu" diameter="20"></mat-spinner>
+        <ng-template #iconeRecu>
+          <mat-icon [svgIcon]="estSolde(paiement) ? 'mat:receipt' : 'mat:description'"
+            [ngClass]="estSolde(paiement) ? 'text-green-700' : 'text-amber-700'"></mat-icon>
+        </ng-template>
+      </button>
+    </vex-liste-ligne>
+  </ng-container>
+
+  <!-- Lignes — mensualités, regroupées par facture -->
+  <ng-container *ngIf="onglet === 'mensualite'">
+    <vex-liste-ligne *ngFor="let facture of factures()">
+      <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex-none flex items-center justify-center">
+        <mat-icon svgIcon="mat:calendar_today" class="icon-sm"></mat-icon>
+      </div>
+      <div class="min-w-0">
+        <p class="m-0 body-1 font-semibold truncate">
+          {{ facture.inscription?.eleve?.nom_complet ?? '—' }}
+          <span class="caption text-hint font-normal">({{ facture.inscription?.eleve?.matricule }})</span>
+        </p>
+        <p class="m-0 caption text-hint">
+          <span class="font-medium text-primary-600">{{ facture.numero_facture }}</span>
+          &bull; <span>{{ moisLabel(facture) }}</span>
+          &bull; <span>{{ facture.date_paiement | date : 'dd/MM/yyyy' }}</span>
+          <ng-container *ngIf="facture.utilisateur"> &bull; <span>par {{ facture.utilisateur.full_name }}</span></ng-container>
+        </p>
+      </div>
+
+      <!-- Mode + montant à droite -->
+      <span badge class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+        {{ modeLabelFacture(facture) }}
+      </span>
+      <span secondaire class="flex flex-col items-end">
+        <span class="body-1 font-semibold text-green-700 whitespace-nowrap">{{ facture.montant_total | number }} FCFA</span>
+        <span class="caption text-hint" *ngIf="facture.numero_transaction">Réf. {{ facture.numero_transaction }}</span>
+      </span>
+
+      <!-- Un seul justificatif pour toute la facture -->
+      <button actions mat-icon-button type="button" [disabled]="downloadingFactureId !== null"
+        matTooltip="Imprimer le reçu des mensualités" (click)="telechargerFacture(facture)">
+        <mat-spinner *ngIf="downloadingFactureId === facture.id; else iconeFacture" diameter="20"></mat-spinner>
+        <ng-template #iconeFacture>
+          <mat-icon svgIcon="mat:receipt" class="text-green-700"></mat-icon>
+        </ng-template>
+      </button>
+    </vex-liste-ligne>
+  </ng-container>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:assignment_turned_in" class="icon-lg"></mat-icon>
+    </div>
+
+    <ng-container *ngIf="searchCtrl.value; else aucunPaiement">
+      <h3 class="title m-0">Aucun résultat</h3>
+      <p class="m-0 caption text-hint text-center">
+        Aucun paiement ne correspond à « {{ searchCtrl.value }} ».
+      </p>
+    </ng-container>
+
+    <ng-template #aucunPaiement>
+      <h3 class="title m-0">Aucun paiement</h3>
+      <p class="m-0 caption text-hint text-center">
+        <ng-container *ngIf="onglet === 'inscription'">
+          Aucun frais d'inscription n'a encore été encaissé pour l'année en cours.
+        </ng-container>
+        <ng-container *ngIf="onglet === 'mensualite'">
+          Aucune mensualité n'a encore été encaissée pour l'année en cours.
+        </ng-container>
+      </p>
+    </ng-template>
+  </div>
+</vex-liste-page>

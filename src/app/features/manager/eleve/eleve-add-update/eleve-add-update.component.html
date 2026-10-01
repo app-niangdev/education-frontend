@@ -1,0 +1,500 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- Header -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0 gap-4">
+      <button mat-icon-button type="button" (click)="retour()" matTooltip="Retour à la liste" class="flex-none">
+        <mat-icon svgIcon="mat:arrow_back"></mat-icon>
+      </button>
+
+      <h2 class="display-1 font-bold m-0 flex items-center w-full">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:person"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">
+          {{ isEdit ? 'Modifier l\'élève' : 'Nouvel élève' }}
+        </span>
+      </h2>
+    </div>
+
+    <p class="m-0 mt-2 caption text-hint container px-0" *ngIf="isEdit && eleve">
+      {{ eleve.nom_complet }} — {{ eleve.matricule }}
+    </p>
+  </div>
+
+  <div class="container-fluid px-6">
+    <div class="mt-6 flex flex-col gap-6">
+
+      <!-- Chargement de la fiche en modification -->
+      <div *ngIf="chargement" class="card flex flex-col items-center justify-center gap-4 p-12">
+        <mat-spinner diameter="48"></mat-spinner>
+        <p class="m-0 text-hint">Chargement de la fiche...</p>
+      </div>
+
+      <div class="card" *ngIf="!chargement">
+        <mat-stepper [linear]="!isEdit" #stepper class="eleve-stepper"
+          (selectionChange)="onEtapeChange($event)">
+
+          <!-- Etape 1 : Identite et scolarite -->
+          <mat-step [stepControl]="identiteForm" errorMessage="Champs obligatoires manquants">
+            <ng-template matStepLabel>Identité</ng-template>
+
+            <form [formGroup]="identiteForm" class="flex flex-col gap-4 pt-4">
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Nom</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:person" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <input matInput formControlName="nom" placeholder="Ex : Diallo" />
+                  <mat-error *ngIf="identiteForm.get('nom')?.hasError('required')">
+                    Le nom est obligatoire
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Prénom</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:person" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <input matInput formControlName="prenom" placeholder="Ex : Awa" />
+                  <mat-error *ngIf="identiteForm.get('prenom')?.hasError('required')">
+                    Le prénom est obligatoire
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Date de naissance</mat-label>
+                  <input matInput [matDatepicker]="picker" [max]="maxDate" formControlName="date_naissance" />
+                  <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                  <mat-datepicker #picker></mat-datepicker>
+                  <mat-error *ngIf="identiteForm.get('date_naissance')?.hasError('required')">
+                    La date de naissance est obligatoire
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Lieu de naissance</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:place" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <input matInput formControlName="lieu_naissance" placeholder="Ex : Dakar" />
+                </mat-form-field>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                <div class="flex flex-col gap-2">
+                  <label class="caption text-hint">Sexe</label>
+                  <mat-radio-group formControlName="sexe" class="flex gap-6">
+                    <mat-radio-button value="M">Masculin</mat-radio-button>
+                    <mat-radio-button value="F">Féminin</mat-radio-button>
+                  </mat-radio-group>
+                  <mat-error class="caption"
+                    *ngIf="identiteForm.get('sexe')?.touched && identiteForm.get('sexe')?.hasError('required')">
+                    Le sexe est obligatoire
+                  </mat-error>
+                </div>
+
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Nationalité</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:place" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <input matInput formControlName="nationalite" />
+                </mat-form-field>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Adresse</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:home" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <input matInput formControlName="adresse" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Téléphone</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:phone" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <input matInput formControlName="telephone" />
+                </mat-form-field>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Statut d'inscription</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:assignment" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <mat-select formControlName="statut_inscription">
+                    <mat-option *ngFor="let s of statuts" [value]="s.value">{{ s.label }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Obligatoire uniquement pour un eleve transfere -->
+                <mat-form-field appearance="outline" class="w-full" *ngIf="transfere">
+                  <mat-label>Établissement d'origine</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:school" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <input matInput formControlName="etablissement_origine" placeholder="Dernière école fréquentée" />
+                  <mat-error *ngIf="identiteForm.get('etablissement_origine')?.hasError('required')">
+                    Obligatoire pour un élève transféré
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="flex justify-end items-center gap-3 pt-2">
+                <span *ngIf="etapeIncomplete(identiteForm)" class="caption text-hint ltr:mr-auto rtl:ml-auto">
+                  Complétez les champs obligatoires pour continuer.
+                </span>
+                <button mat-stroked-button type="button" (click)="retour()">Annuler</button>
+                <button mat-raised-button color="primary" type="button" (click)="etapeSuivante(identiteForm)">
+                  Suivant
+                  <mat-icon svgIcon="mat:chevron_right" class="ltr:ml-2 rtl:mr-2 icon-sm"></mat-icon>
+                </button>
+              </div>
+            </form>
+          </mat-step>
+
+          <!-- Etape 2 : Antecedents medicaux -->
+          <mat-step [stepControl]="medicalForm">
+            <ng-template matStepLabel>Médical</ng-template>
+
+            <form [formGroup]="medicalForm" class="flex flex-col gap-4 pt-4">
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Groupe sanguin</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:assignment" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <mat-select formControlName="groupe_sanguin">
+                    <mat-option [value]="null">Non renseigné</mat-option>
+                    <mat-option *ngFor="let g of groupesSanguins" [value]="g">{{ g }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Aptitude sportive</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:grade" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <mat-select formControlName="aptitude_sportive">
+                    <mat-option *ngFor="let a of aptitudes" [value]="a.value">{{ a.label }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Allergies</mat-label>
+                <textarea matInput formControlName="allergies" rows="2"
+                  placeholder="Ex : arachides, pénicilline"></textarea>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Maladies chroniques</mat-label>
+                <textarea matInput formControlName="maladies_chroniques" rows="2"
+                  placeholder="Ex : asthme, drépanocytose"></textarea>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Consignes d'urgence</mat-label>
+                <textarea matInput formControlName="consignes_urgence" rows="2"
+                  placeholder="Conduite à tenir en cas d'urgence"></textarea>
+              </mat-form-field>
+
+              <div class="flex justify-between items-center gap-3 pt-2">
+                <button mat-stroked-button type="button" matStepperPrevious>
+                  <mat-icon svgIcon="mat:arrow_back" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+                  Précédent
+                </button>
+                <button mat-raised-button color="primary" type="button" (click)="etapeSuivante(medicalForm)">
+                  Suivant
+                  <mat-icon svgIcon="mat:chevron_right" class="ltr:ml-2 rtl:mr-2 icon-sm"></mat-icon>
+                </button>
+              </div>
+            </form>
+          </mat-step>
+
+          <!-- Etape 3 : Parents -->
+          <!-- Les champs parents deviennent obligatoires quand le tuteur
+               declare a l'etape suivante est le pere ou la mere. -->
+          <mat-step [stepControl]="parentsForm" errorMessage="Coordonnées du parent tuteur manquantes">
+            <ng-template matStepLabel>Parents</ng-template>
+
+            <form [formGroup]="parentsForm" class="flex flex-col gap-6 pt-4">
+
+              <div class="flex flex-col gap-4">
+                <h4 class="body-1 font-semibold m-0 flex items-center gap-2">
+                  <mat-icon svgIcon="mat:person" class="icon-sm text-primary-600"></mat-icon>
+                  Le père
+                </h4>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Nom du père</mat-label>
+                    <input matInput formControlName="nom_pere" />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Prénom du père</mat-label>
+                    <input matInput formControlName="prenom_pere" />
+                  </mat-form-field>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Téléphone du père</mat-label>
+                    <mat-icon matPrefix svgIcon="mat:phone" class="mr-2 text-hint icon-sm"></mat-icon>
+                    <input matInput formControlName="telephone_pere" />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Profession du père</mat-label>
+                    <input matInput formControlName="profession_pere" />
+                  </mat-form-field>
+                </div>
+
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Adresse du père (si différente)</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:home" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <input matInput formControlName="adresse_pere" />
+                </mat-form-field>
+              </div>
+
+              <div class="flex flex-col gap-4">
+                <h4 class="body-1 font-semibold m-0 flex items-center gap-2">
+                  <mat-icon svgIcon="mat:person" class="icon-sm text-primary-600"></mat-icon>
+                  La mère
+                </h4>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Nom de jeune fille</mat-label>
+                    <input matInput formControlName="nom_mere" />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Prénom de la mère</mat-label>
+                    <input matInput formControlName="prenom_mere" />
+                  </mat-form-field>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Téléphone de la mère</mat-label>
+                    <mat-icon matPrefix svgIcon="mat:phone" class="mr-2 text-hint icon-sm"></mat-icon>
+                    <input matInput formControlName="telephone_mere" />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Profession de la mère</mat-label>
+                    <input matInput formControlName="profession_mere" />
+                  </mat-form-field>
+                </div>
+
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Adresse de la mère (si différente)</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:home" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <input matInput formControlName="adresse_mere" />
+                </mat-form-field>
+              </div>
+
+              <div class="flex justify-between items-center gap-3 pt-2">
+                <button mat-stroked-button type="button" matStepperPrevious>
+                  <mat-icon svgIcon="mat:arrow_back" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+                  Précédent
+                </button>
+                <button mat-raised-button color="primary" type="button" (click)="etapeSuivante(parentsForm)">
+                  Suivant
+                  <mat-icon svgIcon="mat:chevron_right" class="ltr:ml-2 rtl:mr-2 icon-sm"></mat-icon>
+                </button>
+              </div>
+            </form>
+          </mat-step>
+
+          <!-- Etape 4 : Tuteur legal -->
+          <mat-step [stepControl]="tuteurForm" errorMessage="Champs obligatoires manquants">
+            <ng-template matStepLabel>Tuteur légal</ng-template>
+
+            <form [formGroup]="tuteurForm" class="flex flex-col gap-4 pt-4">
+
+              <div class="flex items-start gap-3 px-4 py-3 rounded bg-primary-600/5 border border-primary-600/20">
+                <mat-icon svgIcon="mat:info" class="icon-sm text-primary-600 flex-none mt-0.5"></mat-icon>
+                <p class="m-0 caption text-hint">
+                  Le tuteur légal gère le quotidien de l'élève, reçoit les bulletins et paie la scolarité.
+                  Si l'élève vit avec ses parents, indiquez simplement le père ou la mère.
+                </p>
+              </div>
+
+              <!-- Recherche dans l'annuaire : une fratrie partage un tuteur.
+                   Le retrouver ici évite de le resaisir — et donc d'en créer
+                   un doublon pour chaque frère ou sœur inscrit. -->
+              <mat-form-field *ngIf="!tuteurRattache" appearance="outline" class="w-full">
+                <mat-label>Rechercher un tuteur déjà enregistré</mat-label>
+                <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+                <input matInput [formControl]="rechercheTuteur" [matAutocomplete]="annuaire"
+                  placeholder="Nom, prénom, téléphone ou NIN" />
+                <mat-spinner *ngIf="rechercheEnCours" matSuffix diameter="18"></mat-spinner>
+                <mat-hint>
+                  L'élève a un frère ou une sœur dans l'école ? Choisissez son tuteur ici
+                  plutôt que de le ressaisir.
+                </mat-hint>
+
+                <mat-autocomplete #annuaire="matAutocomplete">
+                  <mat-option *ngFor="let t of tuteursTrouves" [value]="''"
+                    (onSelectionChange)="$event.isUserInput && rattacherTuteur(t)">
+                    <div class="flex flex-col leading-tight py-1">
+                      <span>{{ t.nom_complet || t.prenom + ' ' + t.nom }}</span>
+                      <span class="caption text-hint">
+                        {{ t.telephone_principal }}
+                        <ng-container *ngIf="t.eleves_count">
+                          — {{ t.eleves_count }} élève{{ t.eleves_count > 1 ? 's' : '' }} rattaché{{ t.eleves_count > 1 ? 's' : '' }}
+                        </ng-container>
+                      </span>
+                    </div>
+                  </mat-option>
+                </mat-autocomplete>
+              </mat-form-field>
+
+              <!-- Fiche rattachée : les champs restent modifiables, mais la
+                   fiche est commune — l'encart dit qui d'autre est concerné. -->
+              <div *ngIf="tuteurRattache"
+                class="flex items-start gap-3 px-4 py-3 rounded bg-green-600/5 border border-green-600/20">
+                <mat-icon svgIcon="mat:person_add" class="icon-sm text-green-600 flex-none mt-0.5"></mat-icon>
+                <div class="flex-auto">
+                  <p class="m-0 body-2">
+                    Tuteur existant rattaché :
+                    <strong>{{ tuteurRattache.nom_complet || tuteurRattache.prenom + ' ' + tuteurRattache.nom }}</strong>
+                  </p>
+                  <p class="m-0 caption text-hint">
+                    Aucune nouvelle fiche ne sera créée.
+                    <ng-container *ngIf="tuteurRattache.eleves_count">
+                      Toute correction ci-dessous s'appliquera aussi à
+                      <strong>{{ tuteurRattache.eleves_count }} autre{{ tuteurRattache.eleves_count > 1 ? 's' : '' }}
+                        élève{{ tuteurRattache.eleves_count > 1 ? 's' : '' }}</strong>
+                      dont il est le tuteur.
+                    </ng-container>
+                    <ng-container *ngIf="!tuteurRattache.eleves_count">
+                      Les corrections saisies ci-dessous mettront à jour sa fiche.
+                    </ng-container>
+                  </p>
+                </div>
+                <button type="button" mat-stroked-button color="warn" class="flex-none"
+                  (click)="detacherTuteur()">
+                  Détacher
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Lien de parenté</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:contacts" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <mat-select formControlName="lien_parente">
+                    <mat-option *ngFor="let l of liensParente" [value]="l.value">{{ l.label }}</mat-option>
+                  </mat-select>
+                  <mat-error *ngIf="tuteurForm.get('lien_parente')?.hasError('required')">
+                    Le lien de parenté est obligatoire
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>NIN {{ ninRequis ? '' : '(optionnel)' }}</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:badge" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <input matInput formControlName="nin" placeholder="N° carte d'identité nationale" />
+                  <mat-hint *ngIf="ninRequis">Requis : le tuteur n'est ni le père ni la mère</mat-hint>
+                  <mat-error *ngIf="tuteurForm.get('nin')?.hasError('required')">
+                    Le NIN est obligatoire pour un tuteur tiers
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
+              <!-- Le père ou la mère est déjà décrit à l'étape précédente :
+                   redemander ses coordonnées ferait saisir deux fois la même
+                   chose, au risque que les deux versions divergent. -->
+              <div *ngIf="tuteurEstUnParent"
+                class="flex items-start gap-3 px-4 py-3 rounded bg-primary-600/5 border border-primary-600/20">
+                <mat-icon svgIcon="mat:check_circle" class="icon-sm text-primary-600 flex-none mt-0.5"></mat-icon>
+                <p class="m-0 caption text-hint">
+                  Les coordonnées {{ parentTuteurLibelle }} saisies à l'étape
+                  « Parents » servent de fiche tuteur. Rien à ressaisir ici.
+                </p>
+              </div>
+
+              <ng-container *ngIf="!tuteurEstUnParent">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Nom du tuteur</mat-label>
+                    <input matInput formControlName="nom" />
+                    <mat-error *ngIf="tuteurForm.get('nom')?.hasError('required')">
+                      Le nom est obligatoire
+                    </mat-error>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Prénom du tuteur</mat-label>
+                    <input matInput formControlName="prenom" />
+                    <mat-error *ngIf="tuteurForm.get('prenom')?.hasError('required')">
+                      Le prénom est obligatoire
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Téléphone principal</mat-label>
+                    <mat-icon matPrefix svgIcon="mat:phone" class="mr-2 text-hint icon-sm"></mat-icon>
+                    <input matInput formControlName="telephone_principal" />
+                    <mat-hint>Alertes SMS, et identifiant de connexion à l'espace tuteur</mat-hint>
+                    <mat-error *ngIf="tuteurForm.get('telephone_principal')?.hasError('required')">
+                      Le téléphone principal est obligatoire
+                    </mat-error>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Téléphone secondaire</mat-label>
+                    <mat-icon matPrefix svgIcon="mat:phone" class="mr-2 text-hint icon-sm"></mat-icon>
+                    <input matInput formControlName="telephone_secondaire" />
+                  </mat-form-field>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Email</mat-label>
+                    <mat-icon matPrefix svgIcon="mat:mail" class="mr-2 text-hint icon-sm"></mat-icon>
+                    <input matInput type="email" formControlName="email" />
+                    <mat-error *ngIf="tuteurForm.get('email')?.hasError('email')">
+                      L'adresse email n'est pas valide
+                    </mat-error>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Profession</mat-label>
+                    <input matInput formControlName="profession" />
+                  </mat-form-field>
+                </div>
+
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Adresse du tuteur</mat-label>
+                  <mat-icon matPrefix svgIcon="mat:home" class="mr-2 text-hint icon-sm"></mat-icon>
+                  <input matInput formControlName="adresse" />
+                  <mat-error *ngIf="tuteurForm.get('adresse')?.hasError('required')">
+                    L'adresse est obligatoire
+                  </mat-error>
+                </mat-form-field>
+              </ng-container>
+
+              <div class="flex justify-between gap-3 pt-2">
+                <button mat-stroked-button type="button" matStepperPrevious [disabled]="loading">
+                  <mat-icon svgIcon="mat:arrow_back" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+                  Précédent
+                </button>
+
+                <button mat-raised-button color="primary" type="button" (click)="onSubmit()" [disabled]="!canSubmit">
+                  <ng-container *ngIf="!loading">
+                    <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+                    {{ isEdit ? 'Enregistrer' : 'Créer l\'élève' }}
+                  </ng-container>
+                  <ng-container *ngIf="loading">
+                    <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+                    {{ isEdit ? 'Enregistrement...' : 'Création...' }}
+                  </ng-container>
+                </button>
+              </div>
+            </form>
+          </mat-step>
+
+        </mat-stepper>
+      </div>
+
+    </div>
+  </div>
+
+</div>

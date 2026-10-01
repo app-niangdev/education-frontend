@@ -1,0 +1,307 @@
+// ── En-tête ────────────────────────────────────────────────
+.releve-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  &__titre {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  &__icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 2.5rem;
+    @apply text-primary-500;
+  }
+
+  &__filtres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
+
+.filtre {
+  min-width: 15rem;
+
+  @media (max-width: 640px) {
+    min-width: 100%;
+  }
+
+  // Les champs Material portent une gouttière basse faite pour les messages
+  // d'erreur ; il n'y en a pas ici, et elle décalerait l'alignement.
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+}
+
+// ── États vides ────────────────────────────────────────────
+.etat-vide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3.5rem 1rem;
+
+  &__icon {
+    width: 3rem;
+    height: 3rem;
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    @apply text-hint;
+  }
+}
+
+// ── Bandeau de synthèse ────────────────────────────────────
+.synthese {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+  @apply bg-foreground border border-divider;
+
+  &__eleve {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  &__photo {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: none;
+    @apply border-2 border-primary-500;
+
+    &--vide {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      @apply bg-primary-500/10 text-primary-500;
+    }
+  }
+
+  &__chiffres {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+
+    @media (max-width: 640px) {
+      width: 100%;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+  }
+
+  &__attente {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+.chiffre {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  &__valeur {
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.2;
+
+    &--texte {
+      font-size: 1rem;
+      @apply text-default;
+    }
+  }
+
+  &--principal &__valeur {
+    font-size: 2rem;
+  }
+
+  &__libelle {
+    font-size: 0.7rem;
+    margin-top: 0.15rem;
+    text-align: center;
+    @apply text-hint;
+  }
+}
+
+// ── Cartes matières ────────────────────────────────────────
+.matieres {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  gap: 1rem;
+}
+
+.matiere {
+  border-radius: 0.75rem;
+  padding: 1.1rem 1.25rem;
+  @apply bg-foreground border border-divider;
+
+  // Une matière sans note reste visible mais s'efface : elle est au
+  // programme, simplement pas encore évaluée.
+  &--non-notee {
+    opacity: 0.72;
+  }
+
+  &__entete {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  &__nom {
+    font-size: 0.98rem;
+    font-weight: 600;
+    margin: 0;
+    @apply text-default;
+  }
+
+  &__coef {
+    font-size: 0.72rem;
+    @apply text-hint;
+  }
+
+  &__moyenne {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex: none;
+  }
+
+  &__moyenne-valeur {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  &__moyenne-libelle {
+    font-size: 0.68rem;
+    @apply text-hint;
+  }
+
+  &__details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    margin-top: 0.9rem;
+    padding-top: 0.9rem;
+    @apply border-t border-divider;
+  }
+
+  &__evaluations {
+    margin-top: 0.9rem;
+    box-shadow: none !important;
+    @apply bg-transparent;
+
+    ::ng-deep .mat-expansion-panel-header {
+      padding: 0 0.5rem;
+      height: 2.5rem;
+    }
+
+    ::ng-deep .mat-expansion-panel-body {
+      padding: 0 0.5rem 0.5rem;
+    }
+  }
+
+  &__vide {
+    font-size: 0.8rem;
+    margin: 0.9rem 0 0;
+    @apply text-hint;
+  }
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+
+  &__libelle {
+    font-size: 0.68rem;
+    @apply text-hint;
+  }
+
+  &__valeur {
+    font-size: 0.9rem;
+    font-weight: 600;
+    @apply text-default;
+
+    &--texte {
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+  }
+}
+
+// ── Détail des évaluations ─────────────────────────────────
+.evals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.eval {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+
+  & + & {
+    @apply border-t border-divider;
+  }
+
+  &__gauche {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__titre {
+    font-size: 0.85rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    @apply text-default;
+  }
+
+  &__meta {
+    font-size: 0.7rem;
+    @apply text-hint;
+  }
+
+  &__note {
+    font-size: 0.88rem;
+    font-weight: 600;
+    flex: none;
+    @apply text-default;
+
+    // « Absent » et « Non saisie » ne sont pas des notes : elles ne doivent
+    // pas se lire comme un résultat chiffré.
+    &--absent {
+      font-size: 0.78rem;
+      font-weight: 500;
+      @apply text-orange-600;
+    }
+
+    &--attente {
+      font-size: 0.78rem;
+      font-weight: 500;
+      @apply text-hint;
+    }
+  }
+}

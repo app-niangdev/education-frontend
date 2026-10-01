@@ -1,0 +1,76 @@
+<div
+  (mouseenter)="showButton = true"
+  (mouseleave)="showButton = false"
+  class="card h-full flex flex-col justify-between relative hover:shadow-lg transition duration-200 ease-out-swift">
+  <div class="flex-none p-6 flex items-center justify-between gap-6">
+    <div>
+      <h2 class="headline font-bold m-0">{{ value }}</h2>
+      <p class="caption text-secondary m-0">{{ label }}</p>
+    </div>
+
+    <div
+      [ngClass]="iconClass"
+      class="rounded-full w-12 h-12 flex items-center justify-center">
+      <mat-icon [svgIcon]="icon"></mat-icon>
+    </div>
+  </div>
+
+  <div class="p-6 pt-0 flex-grow">
+    <!-- <div class="mt-1" *ngIf="redirect=='customer' && data.bestSaleCustomer!=null">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm text-secondary">Meilleure vente de la boutique</span>
+        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Premium</span>
+      </div>
+
+      <div class="rounded-lg">
+        <div class="flex items-center">
+          <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
+            <mat-icon svgIcon="mat:star_rate" class="text-yellow-600"></mat-icon>
+          </div>
+          <div>
+            <h3 class="text-base font-medium m-0">{{data.bestSaleCustomer.customer_name}}</h3>
+            <p class="text-xs text-secondary m-0">Achat de: {{data.bestSaleCustomer.total_amount | integerSeparator}} Fcfa</p>
+          </div>
+        </div>
+      </div>
+    </div> -->
+    <!-- <div class="mt-1" *ngIf="redirect=='supplier' && data.mostActiveSupplier!=null">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm text-secondary">Fournisseur le plus actif</span>
+        <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">Partenaire</span>
+      </div>
+
+      <div class="rounded-lg">
+        <div class="flex items-center">
+          <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+            <mat-icon svgIcon="mat:business" class="text-purple-600"></mat-icon>
+          </div>
+          <div>
+            <h3 class="text-base font-medium m-0">{{data.mostActiveSupplier.name}}</h3>
+            <p class="text-xs text-secondary m-0">Nombre d'activité: {{data.mostActiveSupplier.supplies_count}}</p>
+          </div>
+        </div>
+      </div>
+    </div> -->
+
+    <!-- <div class="mt-4" *ngIf="redirect=='supplier'">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm text-secondary">Fournisseur le plus actif</span>
+        <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">Partenaire</span>
+      </div>
+
+      <div class="bg-slate-50 rounded-lg p-4">
+        <div class="flex items-center mb-3">
+          <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+            <mat-icon svgIcon="mat:business" class="text-purple-600"></mat-icon>
+          </div>
+          <div>
+            <h3 class="text-base font-medium m-0">rfgtbt</h3>
+            <p class="text-xs text-secondary m-0">btr</p>
+          </div>
+        </div>
+
+      </div>
+    </div> -->
+  </div>
+</div>

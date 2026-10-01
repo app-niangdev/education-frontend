@@ -1,0 +1,163 @@
+<vex-liste-page
+  icon="mat:group_off"
+  titre="Assiduité"
+  titreCarte="Registre des absences et retards"
+  sousTitre="Justifiez, corrigez et suivez l'assiduité des élèves"
+  [loading]="loading"
+  [vide]="presences().length === 0"
+  [aDesFiltres]="true"
+  [meta]="meta()"
+  [pageSizeOptions]="meta().pageSizeOptions ?? [5, 10, 25, 50]"
+  (pageChange)="onPageChange($event)">
+
+  <!-- Action principale (en-tête de page) -->
+  <button entete mat-raised-button color="primary" type="button" class="hidden sm:inline-flex"
+    [disabled]="downloadingFeuille" (click)="telechargerFeuilleVierge()"
+    matTooltip="Imprimer une feuille d'appel vierge pour la classe sélectionnée">
+    <mat-icon *ngIf="!downloadingFeuille" svgIcon="mat:description" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    <mat-spinner *ngIf="downloadingFeuille" diameter="18" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+    Feuille d'appel
+  </button>
+
+  <!-- Réinitialisation des filtres (barre d'outils) -->
+  <button actions *ngIf="filtreActif" mat-stroked-button type="button" (click)="reinitialiserFiltres()">
+    <mat-icon svgIcon="mat:clear_all" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+    Réinitialiser
+  </button>
+
+  <!-- Filtres (la recherche vient toujours en premier) -->
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-56" subscriptSizing="dynamic">
+    <mat-label>Rechercher</mat-label>
+    <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput [formControl]="searchCtrl" placeholder="Nom, prénom ou matricule" />
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-44" subscriptSizing="dynamic">
+    <mat-label>Classe</mat-label>
+    <mat-select [formControl]="classeCtrl">
+      <mat-option [value]="null">Toutes les classes</mat-option>
+      <mat-option *ngFor="let c of classes" [value]="c.id">{{ c.nom }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-40" subscriptSizing="dynamic">
+    <mat-label>Statut</mat-label>
+    <mat-select [formControl]="statutCtrl">
+      <mat-option [value]="null">Tous les statuts</mat-option>
+      <mat-option *ngFor="let s of statuts" [value]="s.value">{{ s.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-40" subscriptSizing="dynamic">
+    <mat-label>Justification</mat-label>
+    <mat-select [formControl]="justifieCtrl">
+      <mat-option [value]="null">Toutes</mat-option>
+      <mat-option [value]="false">À justifier</mat-option>
+      <mat-option [value]="true">Justifiées</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-36" subscriptSizing="dynamic">
+    <mat-label>Du</mat-label>
+    <input matInput [matDatepicker]="pickerDu" [formControl]="duCtrl" />
+    <mat-datepicker-toggle matSuffix [for]="pickerDu"></mat-datepicker-toggle>
+    <mat-datepicker #pickerDu></mat-datepicker>
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-36" subscriptSizing="dynamic">
+    <mat-label>Au</mat-label>
+    <input matInput [matDatepicker]="pickerAu" [formControl]="auCtrl" />
+    <mat-datepicker-toggle matSuffix [for]="pickerAu"></mat-datepicker-toggle>
+    <mat-datepicker #pickerAu></mat-datepicker>
+  </mat-form-field>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let presence of presences()">
+    <div class="w-10 h-10 rounded-full flex-none flex items-center justify-center"
+      [ngClass]="presence.justifie ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+      <mat-icon [svgIcon]="presence.justifie ? 'mat:check_circle' : 'mat:group_off'" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">{{ presence.eleve?.nom_complet ?? '—' }}</p>
+      <p class="m-0 caption text-hint">
+        {{ presence.seance?.date_seance | date: 'EEE dd/MM/yyyy' }}
+        &bull; {{ creneau(presence) }}
+        &bull; {{ matiere(presence) }}
+        &bull; {{ classe(presence) }}
+      </p>
+      <p class="m-0 caption" *ngIf="presence.motif || presence.justifie">
+        <span *ngIf="presence.justifie" class="text-green-700 font-medium">Justifiée</span>
+        <span *ngIf="presence.justifie && presence.motif" class="text-hint"> &bull; </span>
+        <span *ngIf="presence.motif" class="text-hint">{{ presence.motif }}</span>
+      </p>
+    </div>
+
+    <!-- Statut à droite -->
+    <span badge class="px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="statutClass(presence.statut)">
+      {{ presence.statut_libelle }}
+      <span *ngIf="presence.minutes_retard"> · {{ presence.minutes_retard }} min</span>
+    </span>
+
+    <!-- Actions -->
+    <button actions *ngIf="presence.justificatif_url" mat-icon-button type="button"
+      matTooltip="Voir le justificatif" (click)="telechargerJustificatif(presence)">
+      <mat-icon svgIcon="mat:description" class="icon-sm text-primary-600"></mat-icon>
+    </button>
+    <button actions mat-icon-button type="button" matTooltip="Fiche de l'élève" (click)="voirFicheEleve(presence)">
+      <mat-icon svgIcon="mat:visibility" class="icon-sm"></mat-icon>
+    </button>
+    <button actions *ngIf="peutJustifier" mat-icon-button type="button"
+      [matMenuTriggerFor]="menuActions" [matMenuTriggerData]="{ presence: presence }">
+      <mat-icon svgIcon="mat:more_vert"></mat-icon>
+    </button>
+  </vex-liste-ligne>
+
+  <!-- États vides -->
+  <div etatVide>
+    <div *ngIf="filtreActif; else aucuneAnomalie"
+      class="flex flex-col items-center justify-center gap-4 p-12 text-center">
+      <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+        <mat-icon svgIcon="mat:search"></mat-icon>
+      </div>
+      <div>
+        <p class="m-0 body-1 font-medium">Aucune anomalie ne correspond à votre recherche</p>
+        <p class="m-0 caption text-hint">Essayez d'élargir les filtres.</p>
+      </div>
+      <button mat-stroked-button color="primary" type="button" (click)="reinitialiserFiltres()">
+        Réinitialiser les filtres
+      </button>
+    </div>
+
+    <ng-template #aucuneAnomalie>
+      <div class="flex flex-col items-center justify-center gap-4 p-12 text-center">
+        <div class="w-16 h-16 rounded-full bg-green-100 text-green-700 flex items-center justify-center">
+          <mat-icon svgIcon="mat:done_all"></mat-icon>
+        </div>
+        <div>
+          <p class="m-0 body-1 font-medium">Aucune absence ni retard enregistré</p>
+          <p class="m-0 caption text-hint">
+            Les anomalies apparaîtront ici au fur et à mesure des appels faits par les enseignants.
+          </p>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+</vex-liste-page>
+
+<!-- Actions de la vie scolaire -->
+<mat-menu #menuActions="matMenu" xPosition="before" yPosition="below">
+  <ng-template matMenuContent let-presence="presence">
+    <button mat-menu-item (click)="justifier(presence)">
+      <mat-icon svgIcon="mat:check_circle" class="mr-2 icon-sm"></mat-icon>
+      <span>{{ presence.justifie ? 'Modifier la justification' : 'Justifier' }}</span>
+    </button>
+    <button mat-menu-item (click)="corriger(presence)">
+      <mat-icon svgIcon="mat:edit" class="mr-2 icon-sm"></mat-icon>
+      <span>Corriger le statut</span>
+    </button>
+    <button mat-menu-item (click)="supprimer(presence)" class="text-red-600">
+      <mat-icon svgIcon="mat:delete" class="mr-2 icon-sm"></mat-icon>
+      <span>Supprimer</span>
+    </button>
+  </ng-template>
+</mat-menu>

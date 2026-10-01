@@ -1,0 +1,205 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- Header -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0">
+      <h2 class="display-1 font-bold m-0 flex items-center w-full">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:calendar_today"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">Mensualités</span>
+      </h2>
+    </div>
+  </div>
+
+  <div class="container-fluid px-6">
+    <div class="mt-6 flex flex-col gap-6">
+
+      <!-- Accès caisse retiré : consultation possible, encaissement non. -->
+      <div *ngIf="!accesCaisse"
+        class="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3">
+        <mat-icon svgIcon="mat:lock" class="text-amber-700 icon-sm flex-none mt-0.5"></mat-icon>
+        <div>
+          <p class="m-0 body-2 font-medium text-amber-900">Accès à la caisse désactivé</p>
+          <p class="m-0 caption text-amber-800">
+            Vous pouvez consulter les mensualités, mais pas enregistrer d'encaissement.
+            Contactez un administrateur pour rétablir cet accès.
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <!-- Barre de recherche -->
+        <div class="px-6 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="title m-0">Suivi des mensualités par élève</h2>
+            <p class="m-0 caption text-hint">
+              Élèves ayant au moins un mois non soldé — année en cours
+            </p>
+          </div>
+
+          <mat-form-field appearance="outline" class="w-full sm:w-80" subscriptSizing="dynamic">
+            <mat-label>Rechercher</mat-label>
+            <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+            <input matInput [formControl]="searchCtrl" placeholder="Élève, matricule, N° inscription, classe" />
+          </mat-form-field>
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="loading" class="flex flex-col items-center justify-center gap-4 p-12">
+          <mat-spinner diameter="48"></mat-spinner>
+          <p class="m-0 text-hint">Chargement en cours...</p>
+        </div>
+
+        <ng-container *ngIf="!loading">
+
+          <!-- Liste groupée par élève -->
+          <div class="divide-y" *ngIf="inscriptions().length > 0">
+            <div *ngFor="let insc of inscriptions()" class="transition-colors duration-150">
+
+              <!-- En-tête élève (cliquable pour déplier) -->
+              <div class="px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-gray-50 cursor-pointer"
+                (click)="basculer(insc)">
+
+                <div class="flex items-center gap-4 flex-auto">
+                  <button mat-icon-button type="button" (click)="$event.stopPropagation(); basculer(insc)"
+                    [attr.aria-label]="estOuvert(insc) ? 'Replier' : 'Déplier'">
+                    <mat-icon [svgIcon]="estOuvert(insc) ? 'mat:arrow_drop_down' : 'mat:chevron_right'"></mat-icon>
+                  </button>
+
+                  <div
+                    class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+                    <mat-icon svgIcon="mat:person" class="icon-sm"></mat-icon>
+                  </div>
+
+                  <div class="min-w-0">
+                    <p class="m-0 body-1 font-semibold truncate">
+                      {{ insc.eleve?.nom_complet ?? '—' }}
+                      <span class="caption text-hint font-normal">({{ insc.eleve?.matricule }})</span>
+                    </p>
+                    <p class="m-0 caption text-hint">
+                      <span class="font-medium text-primary-600">{{ insc.numero_inscription }}</span>
+                      &bull;
+                      <span>{{ insc.classe?.nom ?? '—' }}</span>
+                      &bull;
+                      <span>{{ nbNonSoldes(insc) }} mois à solder</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-6 flex-none">
+                  <!-- Progression annuelle -->
+                  <div class="hidden md:flex flex-col items-end gap-1 w-48">
+                    <div class="w-full flex items-center justify-between">
+                      <span class="caption text-hint">{{ totalPaye(insc) | number }} / {{ totalDu(insc) | number }}</span>
+                      <span class="caption font-semibold text-primary-600">{{ progression(insc) }}%</span>
+                    </div>
+                    <div class="w-full h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                      <div class="h-full bg-primary-600 rounded-full" [style.width.%]="progression(insc)"></div>
+                    </div>
+                    <span class="caption text-hint">
+                      Reste : <span class="font-semibold text-primary-600">{{ resteTotal(insc) | number }} FCFA</span>
+                    </span>
+                  </div>
+
+                  <div class="flex items-center gap-2 flex-none">
+                    <!-- Réimpression d'un reçu déjà émis : consultation seule,
+                         donc pas soumise à l'accès caisse. -->
+                    <button mat-stroked-button type="button"
+                      (click)="$event.stopPropagation(); voirRecus(insc)"
+                      matTooltip="Consulter et réimprimer les reçus de mensualités">
+                      <mat-icon svgIcon="mat:download" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+                      Reçus
+                    </button>
+
+                    <button mat-raised-button color="primary" type="button"
+                      (click)="$event.stopPropagation(); versementGlobal(insc)"
+                      [disabled]="!accesCaisse"
+                      [matTooltip]="accesCaisse ? '' : 'Votre accès à la caisse a été désactivé'"
+                      [matTooltipDisabled]="accesCaisse">
+                      <mat-icon svgIcon="mat:receipt" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+                      Régler plusieurs mois
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Détail des mois (déplié) -->
+              <div *ngIf="estOuvert(insc)" class="px-6 pb-4 bg-gray-50/60">
+                <div class="rounded-lg border overflow-hidden">
+                  <div *ngFor="let m of mensualites(insc)"
+                    class="flex items-center justify-between gap-4 px-4 py-2.5 border-b last:border-b-0 bg-white"
+                    [class.opacity-60]="moisSolde(m)">
+
+                    <div class="flex items-center gap-3 flex-auto min-w-0">
+                      <mat-icon svgIcon="mat:calendar_today" class="icon-sm text-hint flex-none"></mat-icon>
+                      <span class="body-2 font-medium w-32 flex-none">{{ libelleMois(m) }}</span>
+                      <span class="caption text-hint">
+                        {{ (m.total_paye ?? 0) | number }} / {{ m.montant_mensualite | number }} FCFA
+                      </span>
+                    </div>
+
+                    <div class="flex items-center gap-4 flex-none">
+                      <span class="caption text-hint hidden sm:inline">
+                        Reste : <span class="font-medium">{{ (m.reste ?? m.montant_mensualite) | number }}</span>
+                      </span>
+
+                      <span class="px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="statutClass(m)">
+                        {{ statutLabel(m) }}
+                      </span>
+
+                      <button mat-stroked-button color="primary" type="button" class="flex-none"
+                        [disabled]="moisSolde(m) || !accesCaisse"
+                        [matTooltip]="accesCaisse ? '' : 'Votre accès à la caisse a été désactivé'"
+                        [matTooltipDisabled]="accesCaisse"
+                        (click)="encaisserMois(m)">
+                        <mat-icon svgIcon="mat:receipt" class="ltr:mr-1 rtl:ml-1 icon-sm"></mat-icon>
+                        {{ moisSolde(m) ? 'Soldé' : 'Encaisser' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div *ngIf="inscriptions().length === 0" class="flex flex-col items-center justify-center gap-4 p-12">
+            <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+              <mat-icon svgIcon="mat:check_circle" class="icon-lg"></mat-icon>
+            </div>
+
+            <ng-container *ngIf="searchCtrl.value; else aJour">
+              <h3 class="title m-0">Aucun résultat</h3>
+              <p class="m-0 caption text-hint text-center">
+                Aucun élève avec mensualité à encaisser ne correspond à « {{ searchCtrl.value }} ».
+              </p>
+            </ng-container>
+
+            <ng-template #aJour>
+              <h3 class="title m-0">Tout est à jour</h3>
+              <p class="m-0 caption text-hint text-center">
+                Aucun élève n'a de mensualité en attente pour l'année en cours.
+              </p>
+            </ng-template>
+          </div>
+
+          <!-- Pagination serveur -->
+          <mat-paginator *ngIf="meta().total > 0"
+            [length]="meta().total"
+            [pageIndex]="meta().current_page - 1"
+            [pageSize]="meta().per_page"
+            [pageSizeOptions]="meta().pageSizeOptions ?? [5, 10, 25, 50]"
+            (page)="onPageChange($event)"
+            showFirstLastButtons>
+          </mat-paginator>
+
+        </ng-container>
+      </div>
+
+    </div>
+  </div>
+
+</div>

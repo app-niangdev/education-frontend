@@ -1,0 +1,174 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div
+      class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:receipt"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">Encaisser la mensualité</h2>
+      <p class="m-0 caption text-hint">
+        {{ libelleMois }} — {{ mensualite.inscription?.eleve?.nom_complet }}
+        <span *ngIf="mensualite.inscription?.numero_inscription">
+          ({{ mensualite.inscription?.numero_inscription }})
+        </span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Étape 2 : versement encaissé, impression du justificatif -->
+  <ng-container *ngIf="paiementEncaisse as paiement">
+    <mat-dialog-content class="px-6 py-4">
+      <div class="flex flex-col items-center text-center gap-3 py-4">
+        <div class="w-16 h-16 rounded-full flex items-center justify-center"
+          [ngClass]="soldee ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'">
+          <mat-icon [svgIcon]="soldee ? 'mat:check_circle' : 'mat:info'" class="icon-lg"></mat-icon>
+        </div>
+
+        <h3 class="title m-0">Versement encaissé</h3>
+
+        <p class="m-0 body-2">
+          {{ paiement.montant | number }} FCFA — {{ libelleMois }}
+        </p>
+        <p class="m-0 caption text-hint">
+          Reçu n° <span class="font-medium text-primary-600">{{ paiement.numero_recu }}</span>
+        </p>
+
+        <div class="w-full mt-2 px-4 py-3 rounded text-left"
+          [ngClass]="soldee ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'">
+          <p class="m-0 caption" [ngClass]="soldee ? 'text-green-800' : 'text-amber-800'">
+            <ng-container *ngIf="soldee">
+              La mensualité est intégralement soldée : le document à imprimer est un
+              <strong>reçu de paiement</strong>.
+            </ng-container>
+            <ng-container *ngIf="!soldee">
+              Le paiement n'est pas complet : le document à imprimer est une
+              <strong>décharge</strong>, mentionnant le reste à payer.
+            </ng-container>
+          </p>
+        </div>
+      </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+      <button mat-stroked-button type="button" (click)="terminer()" [disabled]="downloading">
+        Fermer
+      </button>
+
+      <button mat-raised-button color="primary" type="button"
+        (click)="imprimerJustificatif()" [disabled]="downloading">
+        <ng-container *ngIf="!downloading">
+          <mat-icon [svgIcon]="soldee ? 'mat:receipt' : 'mat:description'"
+            class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+          Imprimer {{ soldee ? 'le reçu' : 'la décharge' }}
+        </ng-container>
+        <ng-container *ngIf="downloading">
+          <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+          Génération...
+        </ng-container>
+      </button>
+    </mat-dialog-actions>
+  </ng-container>
+
+  <!-- Étape 1 : saisie du versement -->
+  <ng-container *ngIf="!paiementEncaisse">
+  <mat-dialog-content class="px-6 py-4">
+
+    <!-- Rappel des montants -->
+    <div class="grid grid-cols-3 gap-4 px-4 py-3 rounded bg-gray-50 border mb-4">
+      <div>
+        <p class="m-0 caption text-hint">Montant dû</p>
+        <p class="m-0 body-2 font-medium">{{ mensualite.montant_mensualite | number }} FCFA</p>
+      </div>
+      <div>
+        <p class="m-0 caption text-hint">Déjà payé</p>
+        <p class="m-0 body-2">{{ dejaPaye | number }} FCFA</p>
+      </div>
+      <div>
+        <p class="m-0 caption text-hint">Reste à payer</p>
+        <p class="m-0 body-2 font-semibold text-primary-600">{{ reste | number }} FCFA</p>
+      </div>
+    </div>
+
+    <form [formGroup]="form" class="flex flex-col gap-4">
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Montant versé</mat-label>
+          <mat-icon matPrefix svgIcon="mat:receipt" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput type="number" formControlName="montant" [max]="reste" min="1" />
+          <span matSuffix class="text-hint mr-3">FCFA</span>
+          <mat-hint>Réglable en plusieurs tranches — au plus {{ reste | number }} FCFA</mat-hint>
+          <mat-error *ngIf="form.get('montant')?.hasError('required')">
+            Le montant est obligatoire
+          </mat-error>
+          <mat-error *ngIf="form.get('montant')?.hasError('min')">
+            Le montant doit être d'au moins 1 FCFA
+          </mat-error>
+          <mat-error *ngIf="form.get('montant')?.hasError('max')">
+            Le montant ne peut pas dépasser le reste à payer ({{ reste | number }} FCFA)
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Mode de paiement</mat-label>
+          <mat-icon matPrefix svgIcon="mat:shopping_bag" class="mr-2 text-hint icon-sm"></mat-icon>
+          <mat-select formControlName="mode_paiement">
+            <mat-option *ngFor="let m of modesPaiement" [value]="m.value">{{ m.label }}</mat-option>
+          </mat-select>
+          <mat-error *ngIf="form.get('mode_paiement')?.hasError('required')">
+            Le mode de paiement est obligatoire
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>N° de transaction (optionnel)</mat-label>
+          <input matInput formControlName="numero_transaction" placeholder="Réf. Wave, Orange Money..." />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Date du paiement</mat-label>
+          <input matInput [matDatepicker]="picker" [max]="maxDate" formControlName="date_paiement" />
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+          <mat-hint>Par défaut, aujourd'hui</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <!-- Conséquence du versement -->
+      <div class="flex items-start gap-3 px-4 py-3 rounded"
+        [ngClass]="partiel ? 'bg-amber-50 border border-amber-200' : 'bg-green-50 border border-green-200'">
+        <mat-icon [svgIcon]="partiel ? 'mat:info' : 'mat:check_circle'" class="icon-sm flex-none mt-0.5"
+          [ngClass]="partiel ? 'text-amber-600' : 'text-green-600'"></mat-icon>
+        <p class="m-0 caption" [ngClass]="partiel ? 'text-amber-800' : 'text-green-800'">
+          <ng-container *ngIf="partiel">
+            Versement partiel : la mensualité restera à solder (statut « Partiel »).
+          </ng-container>
+          <ng-container *ngIf="!partiel">
+            Versement intégral : la mensualité sera entièrement soldée (statut « Payé »).
+          </ng-container>
+        </p>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">Annuler</button>
+
+    <button mat-raised-button color="primary" type="button" (click)="onSubmit()"
+      [disabled]="loading || form.invalid">
+      <ng-container *ngIf="!loading">
+        <mat-icon svgIcon="mat:check_circle" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Encaisser
+      </ng-container>
+      <ng-container *ngIf="loading">
+        <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        Encaissement...
+      </ng-container>
+    </button>
+  </mat-dialog-actions>
+  </ng-container>
+</div>

@@ -1,0 +1,114 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div
+      class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:date_range"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">
+        {{ data.isEdit ? 'Modifier le créneau' : 'Nouveau créneau' }}
+      </h2>
+      <p class="m-0 caption text-hint">Classe {{ data.classeNom }}</p>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <mat-dialog-content class="px-6 py-4">
+
+    <div *ngIf="loadingRefs" class="flex flex-col items-center justify-center gap-4 py-8">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p class="m-0 caption text-hint">Chargement des matières...</p>
+    </div>
+
+    <form *ngIf="!loadingRefs" [formGroup]="form" class="flex flex-col gap-4">
+
+      <!-- Matiere + enseignant (via affectation) -->
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Matière et enseignant</mat-label>
+        <mat-icon matPrefix svgIcon="mat:book" class="mr-2 text-hint icon-sm"></mat-icon>
+        <mat-select formControlName="affectation_id">
+          <mat-option *ngFor="let a of affectations" [value]="a.id">
+            {{ affectationLabel(a) }}
+          </mat-option>
+        </mat-select>
+        <mat-hint *ngIf="affectations.length === 0">
+          Aucune matière affectée à cette classe. Ajoutez d'abord le programme et les enseignants.
+        </mat-hint>
+        <mat-error *ngIf="form.get('affectation_id')?.hasError('required')">
+          La matière est obligatoire
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Jour -->
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Jour</mat-label>
+        <mat-icon matPrefix svgIcon="mat:date_range" class="mr-2 text-hint icon-sm"></mat-icon>
+        <mat-select formControlName="jour">
+          <mat-option *ngFor="let j of jours" [value]="j.value">
+            {{ j.libelle }}
+          </mat-option>
+        </mat-select>
+        <mat-error *ngIf="form.get('jour')?.hasError('required')">
+          Le jour est obligatoire
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Horaires -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Heure de début</mat-label>
+          <mat-icon matPrefix svgIcon="mat:access_time" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput type="time" formControlName="heure_debut" />
+          <mat-error *ngIf="form.get('heure_debut')?.hasError('required')">
+            Obligatoire
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Durée</mat-label>
+          <mat-icon matPrefix svgIcon="mat:hourglass_empty" class="mr-2 text-hint icon-sm"></mat-icon>
+          <mat-select formControlName="duree">
+            <mat-option *ngFor="let d of dureesDisponibles" [value]="d.value">
+              {{ d.libelle }}
+            </mat-option>
+          </mat-select>
+          <mat-hint *ngIf="dureesDisponibles.length">Fin à {{ heureFin }}</mat-hint>
+          <mat-hint *ngIf="!dureesDisponibles.length" class="text-red-500">
+            Pas de place avant la séance suivante
+          </mat-hint>
+          <mat-error *ngIf="form.get('duree')?.hasError('required')">
+            Obligatoire
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Salle -->
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Salle (optionnel)</mat-label>
+        <mat-icon matPrefix svgIcon="mat:place" class="mr-2 text-hint icon-sm"></mat-icon>
+        <input matInput formControlName="salle" placeholder="Ex: Salle 12" />
+      </mat-form-field>
+
+    </form>
+  </mat-dialog-content>
+
+  <!-- Actions -->
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">
+      Annuler
+    </button>
+
+    <button mat-raised-button color="primary" type="button" (click)="onSubmit()"
+      [disabled]="!canSubmit">
+      <ng-container *ngIf="!loading">
+        <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        {{ data.isEdit ? 'Modifier' : 'Ajouter' }}
+      </ng-container>
+      <ng-container *ngIf="loading">
+        <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        Enregistrement...
+      </ng-container>
+    </button>
+  </mat-dialog-actions>
+</div>

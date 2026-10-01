@@ -1,0 +1,97 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div
+      class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:book"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">
+        {{ data.isEdit ? 'Modifier le coefficient' : 'Ajouter une matière' }}
+      </h2>
+      <p class="m-0 caption text-hint">
+        Classe {{ data.classeNom }}
+        <ng-container *ngIf="data.isEdit && data.classeMatiere">
+          &bull; {{ data.classeMatiere.matiere?.nom }}
+        </ng-container>
+      </p>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <mat-dialog-content class="px-6 py-4">
+
+    <div *ngIf="loadingRefs" class="flex flex-col items-center justify-center gap-4 py-8">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p class="m-0 caption text-hint">Chargement des matières...</p>
+    </div>
+
+    <form *ngIf="!loadingRefs" [formGroup]="form" class="flex flex-col gap-4">
+
+      <!-- Matiere (creation seulement) -->
+      <mat-form-field *ngIf="!data.isEdit" appearance="outline" class="w-full">
+        <mat-label>Matière</mat-label>
+        <mat-icon matPrefix svgIcon="mat:book" class="mr-2 text-hint icon-sm"></mat-icon>
+        <mat-select formControlName="matiere_id">
+          <mat-option *ngFor="let m of matieresDisponibles" [value]="m.id">
+            {{ m.nom }} ({{ m.code }})
+          </mat-option>
+        </mat-select>
+        <mat-hint *ngIf="matieresDisponibles.length === 0">
+          Toutes les matières du catalogue sont déjà au programme.
+        </mat-hint>
+        <mat-error *ngIf="form.get('matiere_id')?.hasError('required')">
+          La matière est obligatoire
+        </mat-error>
+      </mat-form-field>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Coefficient -->
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Coefficient</mat-label>
+          <mat-icon matPrefix svgIcon="mat:assessment" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput type="number" formControlName="coefficient" min="1" max="20" placeholder="Ex: 6" />
+          <mat-error *ngIf="form.get('coefficient')?.hasError('required')">
+            Le coefficient est obligatoire
+          </mat-error>
+          <mat-error *ngIf="form.get('coefficient')?.hasError('min')">
+            Minimum 1
+          </mat-error>
+          <mat-error *ngIf="form.get('coefficient')?.hasError('max')">
+            Maximum 20
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Volume horaire -->
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Volume horaire (optionnel)</mat-label>
+          <mat-icon matPrefix svgIcon="mat:access_time" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput type="number" formControlName="volume_horaire" min="1" placeholder="Ex: 4" />
+          <mat-error *ngIf="form.get('volume_horaire')?.hasError('min')">
+            Minimum 1
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <!-- Actions -->
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">
+      Annuler
+    </button>
+
+    <button mat-raised-button color="primary" type="button" (click)="onSubmit()"
+      [disabled]="!canSubmit">
+      <ng-container *ngIf="!loading">
+        <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        {{ data.isEdit ? 'Modifier' : 'Ajouter' }}
+      </ng-container>
+      <ng-container *ngIf="loading">
+        <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        Enregistrement...
+      </ng-container>
+    </button>
+  </mat-dialog-actions>
+</div>

@@ -1,0 +1,136 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- Header -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0">
+      <h2 class="display-1 font-bold m-0 flex items-center w-full">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:assignment_turned_in"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">Appel</span>
+      </h2>
+
+      <mat-form-field appearance="outline" class="w-48 flex-none" subscriptSizing="dynamic">
+        <mat-label>Date</mat-label>
+        <input matInput [matDatepicker]="picker" [formControl]="dateCtrl" />
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <div class="container-fluid px-6">
+    <div class="mt-6 flex flex-col gap-6">
+
+      <div class="card">
+        <div class="px-6 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="title m-0">Mes cours du jour</h2>
+            <p class="m-0 caption text-hint" *ngIf="journee">
+              {{ journee.jour }} {{ journee.date | date: 'dd/MM/yyyy' }}
+              <span *ngIf="creneaux.length">
+                &bull; {{ nbAppelsFaits }} / {{ creneaux.length }} appel(s) fait(s)
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <!-- La date n'appartient à aucune période : l'appel ne comptera pas au bulletin -->
+        <div *ngIf="journee?.hors_periode && creneaux.length"
+          class="px-6 py-3 bg-amber-50 border-b border-amber-200 flex items-start gap-3">
+          <mat-icon svgIcon="mat:warning" class="text-amber-600 icon-sm flex-none mt-0.5"></mat-icon>
+          <p class="m-0 caption text-amber-800">
+            Cette date n'appartient à aucune période scolaire : l'appel sera enregistré mais
+            <strong>ne comptera pas</strong> dans les bulletins.
+          </p>
+        </div>
+
+        <!-- Cours à venir : rien à appeler -->
+        <div *ngIf="dateDansLeFutur && creneaux.length"
+          class="px-6 py-3 bg-amber-50 border-b border-amber-200 flex items-start gap-3">
+          <mat-icon svgIcon="mat:access_time" class="text-amber-600 icon-sm flex-none mt-0.5"></mat-icon>
+          <p class="m-0 caption text-amber-800">
+            Ces cours n'ont pas encore eu lieu : l'appel se fait le jour même ou après.
+          </p>
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="loading" class="flex flex-col items-center justify-center gap-4 p-12">
+          <mat-spinner diameter="48"></mat-spinner>
+          <p class="m-0 text-hint">Chargement en cours...</p>
+        </div>
+
+        <ng-container *ngIf="!loading">
+
+          <!-- Les créneaux du jour -->
+          <div class="divide-y" *ngIf="creneaux.length > 0">
+            <div *ngFor="let creneau of creneaux"
+              class="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 transition-colors duration-150">
+
+              <div class="flex items-center gap-4 flex-auto min-w-0">
+                <div class="w-12 h-12 rounded-full flex-none flex flex-col items-center justify-center"
+                  [ngClass]="creneau.seance ? 'bg-green-100 text-green-700' : 'bg-primary-600/10 text-primary-600'">
+                  <mat-icon [svgIcon]="creneau.seance ? 'mat:check_circle' : 'mat:access_time'"
+                    class="icon-sm"></mat-icon>
+                </div>
+
+                <div class="min-w-0">
+                  <p class="m-0 body-1 font-semibold truncate">
+                    {{ matiere(creneau) }}
+                    <span class="ml-2 caption font-normal text-hint">{{ classe(creneau) }}</span>
+                  </p>
+                  <p class="m-0 caption text-hint">
+                    {{ heure(creneau.heure_debut) }} – {{ heure(creneau.heure_fin) }}
+                    <span *ngIf="creneau.salle">&bull; {{ creneau.salle }}</span>
+                  </p>
+                  <p class="m-0 caption" *ngIf="creneau.seance"
+                    [class.text-amber-700]="nbAnomalies(creneau) > 0"
+                    [class.text-green-700]="nbAnomalies(creneau) === 0">
+                    <ng-container *ngIf="nbAnomalies(creneau) > 0; else toutPresent">
+                      {{ nbAnomalies(creneau) }} anomalie(s) relevée(s)
+                    </ng-container>
+                    <ng-template #toutPresent>Tous les élèves présents</ng-template>
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3 flex-none">
+                <button mat-stroked-button color="primary" type="button"
+                  [disabled]="dateDansLeFutur" (click)="faireAppel(creneau)">
+                  <mat-icon [svgIcon]="creneau.seance ? 'mat:edit' : 'mat:assignment_turned_in'"
+                    class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+                  {{ creneau.seance ? "Modifier l'appel" : "Faire l'appel" }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- États vides : distinguer dimanche, pas de cours, et pas d'emploi du temps -->
+          <div *ngIf="creneaux.length === 0"
+            class="flex flex-col items-center justify-center gap-4 p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+              <mat-icon svgIcon="mat:date_range"></mat-icon>
+            </div>
+
+            <div *ngIf="journee?.est_dimanche; else pasDeCours">
+              <p class="m-0 body-1 font-medium">Aucun cours le dimanche</p>
+              <p class="m-0 caption text-hint">Choisissez un autre jour dans le calendrier.</p>
+            </div>
+
+            <ng-template #pasDeCours>
+              <div>
+                <p class="m-0 body-1 font-medium">Aucun cours ce jour</p>
+                <p class="m-0 caption text-hint">
+                  Vous n'avez pas de créneau programmé le {{ journee?.jour }}.
+                  Si c'est inattendu, l'emploi du temps n'a peut-être pas encore été saisi.
+                </p>
+              </div>
+            </ng-template>
+          </div>
+
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,144 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:verified_user"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">
+        {{ data.isEdit ? 'Modifier le surveillant' : 'Nouveau surveillant' }}
+      </h2>
+      <p class="m-0 caption text-hint">
+        {{ data.isEdit ? 'Modifiez les informations de ce surveillant' : 'Enregistrez un nouveau surveillant' }}
+      </p>
+    </div>
+  </div>
+
+  <mat-dialog-content class="px-6 py-4">
+    <form [formGroup]="form" class="flex flex-col gap-5">
+
+      <!-- ── Informations personnelles ── -->
+      <div formGroupName="user" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        <div class="sm:col-span-2">
+          <p class="caption font-semibold text-hint uppercase tracking-wide m-0">Informations personnelles</p>
+          <mat-divider class="mt-2"></mat-divider>
+        </div>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Prénom</mat-label>
+          <mat-icon matPrefix svgIcon="mat:person" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="first_name" placeholder="Ex: Moussa" />
+          <mat-error *ngIf="f('user','first_name').hasError('required')">Le prénom est obligatoire</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Nom</mat-label>
+          <mat-icon matPrefix svgIcon="mat:badge" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="last_name" placeholder="Ex: Sow" />
+          <mat-error *ngIf="f('user','last_name').hasError('required')">Le nom est obligatoire</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Téléphone principal</mat-label>
+          <mat-icon matPrefix svgIcon="mat:phone" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="phone_one" placeholder="Ex: 77 000 00 00" />
+          <mat-error *ngIf="f('user','phone_one').hasError('required')">Le téléphone est obligatoire</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Téléphone secondaire</mat-label>
+          <mat-icon matPrefix svgIcon="mat:phone" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="phone_two" placeholder="Optionnel" />
+        </mat-form-field>
+
+        <!-- Email exigé à la création : c'est l'identifiant de connexion du
+             surveillant, et la voie par laquelle lui parvient son mot de passe
+             provisoire. En édition il reste facultatif, des comptes plus
+             anciens n'en ayant pas. -->
+        <mat-form-field appearance="outline" class="w-full sm:col-span-2">
+          <mat-label>Email</mat-label>
+          <mat-icon matPrefix svgIcon="mat:mail" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput type="email" formControlName="email" placeholder="Ex: m.sow@exemple.sn" />
+          <mat-hint *ngIf="!data.isEdit">Sert d'identifiant de connexion</mat-hint>
+          <mat-error *ngIf="f('user','email').hasError('required')">L'adresse email est obligatoire</mat-error>
+          <mat-error *ngIf="f('user','email').hasError('email')">L'adresse email n'est pas valide</mat-error>
+          <mat-error *ngIf="f('user','email').hasError('maxlength')">L'adresse email est trop longue</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full sm:col-span-2">
+          <mat-label>Adresse</mat-label>
+          <mat-icon matPrefix svgIcon="mat:location_on" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="address" placeholder="Ex: Quartier Médina, Dakar" />
+        </mat-form-field>
+
+      </div>
+
+      <!-- ── Profil surveillant ── -->
+      <div formGroupName="profil" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        <div class="sm:col-span-2">
+          <p class="caption font-semibold text-hint uppercase tracking-wide m-0">Profil surveillant</p>
+          <mat-divider class="mt-2"></mat-divider>
+        </div>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Matricule</mat-label>
+          <mat-icon matPrefix svgIcon="mat:badge" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="matricule" readonly
+            [placeholder]="data.isEdit ? '' : 'Généré automatiquement'" />
+          <mat-hint>Attribué automatiquement à la création</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Zone de surveillance</mat-label>
+          <mat-icon matPrefix svgIcon="mat:place" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="zone_surveillance" placeholder="Ex: Cour principale" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Horaire</mat-label>
+          <mat-icon matPrefix svgIcon="mat:access_time" class="mr-2 text-hint icon-sm"></mat-icon>
+          <input matInput formControlName="horaire" placeholder="Ex: Matin, Journée complète" />
+        </mat-form-field>
+
+      </div>
+
+      <!-- ── Contrat de travail ──
+           Généré avec le surveillant. En édition il n'apparaît pas : les
+           conditions se modifient depuis le module Contrats, qui les historise
+           et permet renouvellement et résiliation. -->
+      <vex-contrat-form *ngIf="!data.isEdit"
+        [form]="contratGroup"
+        fonctionParDefaut="Surveillant"></vex-contrat-form>
+
+      <div *ngIf="data.isEdit"
+           class="flex items-start gap-3 rounded p-3 bg-primary-600/5 text-hint caption">
+        <mat-icon svgIcon="mat:info" class="icon-sm flex-none mt-0.5"></mat-icon>
+        <span>
+          Les conditions d'engagement (type de contrat, dates, rémunération) sont
+          portées par le contrat de travail et se modifient depuis le module
+          <strong>Contrats</strong>.
+        </span>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <!-- Actions -->
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">Annuler</button>
+
+    <button mat-raised-button color="primary" type="button" (click)="onSubmit()"
+      [disabled]="loading || form.invalid">
+      <ng-container *ngIf="!loading">
+        <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        {{ data.isEdit ? 'Modifier' : 'Créer' }}
+      </ng-container>
+      <ng-container *ngIf="loading">
+        <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        {{ data.isEdit ? 'Modification...' : 'Création...' }}
+      </ng-container>
+    </button>
+  </mat-dialog-actions>
+</div>

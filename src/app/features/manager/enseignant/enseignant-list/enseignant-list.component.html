@@ -1,0 +1,97 @@
+<vex-liste-page
+  icon="mat:group"
+  titre="Enseignants"
+  titreCarte="Liste des enseignants"
+  [sousTitre]="total + ' enseignant(s)'"
+  [loading]="loading"
+  [vide]="enseignants.length === 0"
+  [aDesFiltres]="true"
+  [meta]="meta"
+  [pageSizeOptions]="pageSizeOptions"
+  (pageChange)="onPageChange($event)">
+
+  <!-- Action en-tête -->
+  <button entete color="primary" mat-raised-button type="button" (click)="openAddDialog()"
+    class="hidden sm:inline-flex">
+    <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    Nouvel enseignant
+  </button>
+
+  <!-- Filtres -->
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-80" subscriptSizing="dynamic">
+    <mat-label>Rechercher</mat-label>
+    <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput [formControl]="searchCtrl" placeholder="Nom, matricule, téléphone, email…" />
+  </mat-form-field>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let e of enseignants" ligneClass="cursor-pointer" (click)="editEnseignant(e)">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+      <mat-icon svgIcon="mat:person" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">{{ fullName(e) }}</p>
+      <p class="m-0 caption text-hint">
+        <span class="font-medium text-primary-600">{{ e.matricule ?? '—' }}</span>
+        <ng-container *ngIf="e.user?.phone_one"> &bull; {{ e.user?.phone_one }}</ng-container>
+        <ng-container *ngIf="e.user?.email"> &bull; {{ e.user?.email }}</ng-container>
+      </p>
+    </div>
+
+    <!-- Matières + badge contrat à droite -->
+    <span secondaire class="flex flex-wrap gap-1 justify-end" *ngIf="e.matieres?.length">
+      <span *ngFor="let m of e.matieres"
+        class="px-2 py-0.5 rounded bg-primary-600/10 text-primary-600 text-xs font-medium">
+        {{ m.nom }}
+      </span>
+    </span>
+    <span badge class="rounded-full px-2 py-1 text-xs font-medium"
+      [ngClass]="[badge(e.type_contrat).bgClass, badge(e.type_contrat).textClass]">
+      {{ badge(e.type_contrat).text }}
+    </span>
+
+    <button actions mat-icon-button type="button"
+      (click)="$event.stopPropagation()"
+      [matMenuTriggerFor]="actionsMenu" [matMenuTriggerData]="{ enseignant: e }">
+      <mat-icon svgIcon="mat:more_vert"></mat-icon>
+    </button>
+  </vex-liste-ligne>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:group" class="icon-lg"></mat-icon>
+    </div>
+    <ng-container *ngIf="searchCtrl.value; else aucun">
+      <h3 class="title m-0">Aucun résultat</h3>
+      <p class="m-0 caption text-hint text-center">Aucun enseignant ne correspond à votre recherche.</p>
+    </ng-container>
+    <ng-template #aucun>
+      <h3 class="title m-0">Aucun enseignant</h3>
+      <p class="m-0 caption text-hint text-center">Ajoutez le premier enseignant de l'établissement.</p>
+      <button color="primary" mat-raised-button type="button" (click)="openAddDialog()">
+        <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Nouvel enseignant
+      </button>
+    </ng-template>
+  </div>
+</vex-liste-page>
+
+<!-- Menu actions -->
+<mat-menu #actionsMenu="matMenu" xPosition="before" yPosition="below">
+  <ng-template matMenuContent let-enseignant="enseignant">
+    <button mat-menu-item (click)="editEnseignant(enseignant)">
+      <mat-icon svgIcon="mat:edit" class="mr-2"></mat-icon>
+      <span>Modifier</span>
+    </button>
+    <button mat-menu-item (click)="reinitialiserAcces(enseignant)"
+      [disabled]="reinitialisationEnCours === enseignant.id">
+      <mat-icon svgIcon="mat:lock" class="mr-2"></mat-icon>
+      <span>Réinitialiser les accès</span>
+    </button>
+    <button mat-menu-item (click)="deleteEnseignant(enseignant)" class="text-red-600">
+      <mat-icon svgIcon="mat:delete" class="mr-2"></mat-icon>
+      <span>Supprimer</span>
+    </button>
+  </ng-template>
+</mat-menu>

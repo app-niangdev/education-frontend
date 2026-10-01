@@ -1,0 +1,150 @@
+<vex-liste-page
+  icon="mat:assignment_ind"
+  titre="Contrats de travail"
+  titreCarte="Contrats"
+  [sousTitre]="total + ' contrat(s)'"
+  [loading]="loading"
+  [vide]="contrats.length === 0"
+  [aDesFiltres]="true"
+  [meta]="meta"
+  [pageSizeOptions]="pageSizeOptions"
+  (pageChange)="onPageChange($event)">
+
+  <!-- Filtres -->
+  <mat-form-field filtres appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-60">
+    <mat-label>Rechercher</mat-label>
+    <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput [formControl]="searchCtrl" placeholder="N° de contrat, nom, matricule…" />
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-40">
+    <mat-label>Statut</mat-label>
+    <mat-select [(ngModel)]="filtres.statut" (selectionChange)="appliquerFiltres()">
+      <mat-option [value]="undefined">Tous</mat-option>
+      <mat-option *ngFor="let s of referentiels?.statuts" [value]="s.value">{{ s.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-44">
+    <mat-label>Type de contrat</mat-label>
+    <mat-select [(ngModel)]="filtres.type_contrat" (selectionChange)="appliquerFiltres()">
+      <mat-option [value]="undefined">Tous</mat-option>
+      <mat-option *ngFor="let t of referentiels?.types_contrat" [value]="t.value">{{ t.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-40">
+    <mat-label>Personnel</mat-label>
+    <mat-select [(ngModel)]="filtres.contractable_type" (selectionChange)="appliquerFiltres()">
+      <mat-option [value]="undefined">Tous</mat-option>
+      <mat-option *ngFor="let p of typesPersonnel" [value]="p.value">{{ p.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-44">
+    <mat-label>Échéance proche</mat-label>
+    <mat-select [(ngModel)]="filtres.echeance_dans" (selectionChange)="appliquerFiltres()">
+      <mat-option [value]="undefined">Peu importe</mat-option>
+      <mat-option *ngFor="let f of fenetresEcheance" [value]="f.value">{{ f.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <button filtres *ngIf="aDesFiltres" mat-stroked-button type="button" (click)="reinitialiserFiltres()">
+    <mat-icon svgIcon="mat:clear_all" class="icon-sm ltr:mr-2 rtl:ml-2"></mat-icon>
+    Réinitialiser
+  </button>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let contrat of contrats" ligneClass="cursor-pointer" (click)="voirDetail(contrat)">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+      <mat-icon svgIcon="mat:assignment_ind" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">
+        {{ employe(contrat) }}
+        <span class="caption text-hint font-normal" *ngIf="matricule(contrat)">({{ matricule(contrat) }})</span>
+      </p>
+      <p class="m-0 caption text-hint">
+        <span class="font-medium text-primary-600">{{ contrat.numero_contrat }}</span>
+        <ng-container *ngIf="contrat.fonction"> &bull; {{ contrat.fonction }}</ng-container>
+      </p>
+    </div>
+
+    <!-- Type + statut à droite -->
+    <span badge class="rounded-full px-2 py-1 text-xs font-medium"
+      [ngClass]="[typeBadge(contrat.type_contrat).bgClass, typeBadge(contrat.type_contrat).textClass]">
+      {{ typeBadge(contrat.type_contrat).text }}
+    </span>
+    <span badge *ngIf="contrat.en_periode_essai"
+      class="rounded-full px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700">
+      Essai
+    </span>
+    <span badge class="rounded-full px-2 py-1 text-xs font-medium"
+      [ngClass]="[statutBadge(contrat.statut).bgClass, statutBadge(contrat.statut).textClass]">
+      {{ statutBadge(contrat.statut).text }}
+    </span>
+
+    <button actions mat-icon-button type="button"
+      (click)="$event.stopPropagation()"
+      [matMenuTriggerFor]="actionsMenu" [matMenuTriggerData]="{ contrat: contrat }">
+      <mat-icon svgIcon="mat:more_vert"></mat-icon>
+    </button>
+  </vex-liste-ligne>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:assignment_ind" class="icon-lg"></mat-icon>
+    </div>
+    <ng-container *ngIf="searchCtrl.value || aDesFiltres; else aucun">
+      <h3 class="title m-0">Aucun résultat</h3>
+      <p class="m-0 caption text-hint text-center">Aucun contrat ne correspond à vos critères.</p>
+      <button mat-stroked-button color="primary" type="button" (click)="reinitialiserFiltres()">
+        Réinitialiser les filtres
+      </button>
+    </ng-container>
+    <ng-template #aucun>
+      <h3 class="title m-0">Aucun contrat</h3>
+      <p class="m-0 caption text-hint text-center">
+        Les contrats sont créés depuis la fiche de chaque membre du personnel.
+      </p>
+    </ng-template>
+  </div>
+</vex-liste-page>
+
+<!-- Menu actions par ligne -->
+<mat-menu #actionsMenu="matMenu" xPosition="before" yPosition="below">
+  <ng-template matMenuContent let-contrat="contrat">
+    <button mat-menu-item (click)="voirDetail(contrat)">
+      <mat-icon svgIcon="mat:visibility" class="mr-2"></mat-icon>
+      <span>Voir le détail</span>
+    </button>
+
+    <!-- Le contrat imprimable, à signer par les deux parties. Il reste
+         téléchargeable une fois clos : on l'exhume pour justifier une période
+         travaillée. -->
+    <button mat-menu-item (click)="telechargerPdf(contrat)"
+      [disabled]="downloadingId === contrat.id">
+      <mat-icon svgIcon="mat:description" class="mr-2"></mat-icon>
+      <span>{{ downloadingId === contrat.id ? 'Génération…' : 'Télécharger le contrat (PDF)' }}</span>
+    </button>
+
+    <!-- Renouveler reste possible sur un contrat clos : c'est même le cas le
+         plus courant, à l'arrivée du terme. -->
+    <button mat-menu-item (click)="renouveler(contrat)">
+      <mat-icon svgIcon="mat:autorenew" class="mr-2"></mat-icon>
+      <span>Renouveler</span>
+    </button>
+
+    <button mat-menu-item (click)="resilier(contrat)"
+      [disabled]="estClos(contrat)" class="text-amber-700">
+      <mat-icon svgIcon="mat:cancel" class="mr-2"></mat-icon>
+      <span>Résilier</span>
+    </button>
+
+    <button mat-menu-item (click)="supprimer(contrat)" class="text-red-600">
+      <mat-icon svgIcon="mat:delete" class="mr-2"></mat-icon>
+      <span>Supprimer</span>
+    </button>
+  </ng-template>
+</mat-menu>

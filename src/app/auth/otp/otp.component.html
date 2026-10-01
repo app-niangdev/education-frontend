@@ -1,0 +1,82 @@
+<div class="w-full h-full bg-pattern flex flex-col items-center justify-center p-4">
+  <div @fadeInUp
+    class="card overflow-hidden w-full sm:max-w-md mx-auto border border-primary-500">
+
+    <div class="p-4 sm:p-6 pb-0 flex flex-col items-center justify-center">
+      <vex-etablissement-logo imgClass="w-36 sm:w-36"></vex-etablissement-logo>
+    </div>
+
+    <div class="text-center mt-2 sm:mt-4 px-4 sm:px-6">
+      <h2 class="title m-0 text-xl sm:text-2xl">{{ titre }}</h2>
+      <h4 class="body-2 text-secondary m-0 mt-1 text-sm">
+        {{ explication }}
+      </h4>
+      <p class="body-2 m-0 mt-2 text-sm">
+        Code envoyé à <strong>{{ destinataire }}</strong>
+      </p>
+    </div>
+
+    <div class="p-4 sm:p-6 flex flex-col gap-4">
+
+      <!-- Saisie des six chiffres -->
+      <div class="flex justify-center gap-2 sm:gap-3" [class.opacity-50]="expired">
+        <input *ngFor="let d of digits; let i = index"
+          #otpInput
+          type="text"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="1"
+          [value]="d"
+          [disabled]="isSubmitting || expired"
+          (input)="onInput($event, i)"
+          (keydown)="onKeyDown($event, i)"
+          (paste)="onPaste($event, i)"
+          class="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-semibold
+                 rounded border border-gray-300 focus:border-primary-500 focus:outline-none
+                 disabled:bg-gray-100"
+          [attr.aria-label]="'Chiffre ' + (i + 1) + ' sur 6'" />
+      </div>
+
+      <!-- Validité du code en cours -->
+      <p *ngIf="!expired" class="text-secondary text-center text-xs sm:text-sm m-0">
+        Ce code expire dans <strong>{{ expiresLabel }}</strong>
+      </p>
+
+      <div *ngIf="expired"
+        class="p-3 text-amber-800 bg-amber-100 border border-amber-500 rounded text-center text-sm">
+        Le code a expiré. Demandez-en un nouveau.
+      </div>
+
+      <!-- Erreur de vérification -->
+      <div *ngIf="errorMessage"
+        class="p-3 text-red-800 bg-red-100 border border-red-600 rounded text-center text-sm">
+        {{ errorMessage }}
+      </div>
+
+      <button (click)="verify()" color="primary" mat-raised-button type="button"
+        [disabled]="!complet || isSubmitting || expired">
+        <mat-icon svgIcon="mat:check_circle" *ngIf="!isSubmitting" class="mr-1"></mat-icon>
+        <mat-icon *ngIf="isSubmitting" class="animate-spin m-2" svgIcon="mat:autorenew"></mat-icon>
+        VÉRIFIER
+      </button>
+
+      <!-- Renvoi -->
+      <div class="text-center text-xs sm:text-sm">
+        <span *ngIf="resendIn > 0" class="text-secondary">
+          Nouveau code possible dans {{ resendIn }} s
+        </span>
+
+        <a *ngIf="resendIn === 0 && !isResending" href="#" (click)="resend($event)"
+          class="text-primary-600 hover:underline">
+          Renvoyer le code
+        </a>
+
+        <span *ngIf="isResending" class="text-secondary">Envoi en cours…</span>
+      </div>
+
+      <button (click)="annuler()" mat-button type="button" class="text-secondary">
+        Revenir à la connexion
+      </button>
+    </div>
+  </div>
+</div>

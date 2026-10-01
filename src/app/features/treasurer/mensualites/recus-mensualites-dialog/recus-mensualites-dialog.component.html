@@ -1,0 +1,80 @@
+<h2 class="flex items-center gap-2" mat-dialog-title>
+  <mat-icon svgIcon="mat:receipt"></mat-icon>
+  <span>Reçus de mensualités</span>
+</h2>
+
+<mat-dialog-content class="!max-h-[70vh]">
+
+  <p class="m-0 body-2 mb-4">
+    <strong>{{ data.inscription.eleve?.nom_complet }}</strong>
+    <span class="text-hint">
+      ({{ data.inscription.eleve?.matricule }}) —
+      {{ data.inscription.numero_inscription }}
+    </span>
+  </p>
+
+  <!-- Chargement -->
+  <div *ngIf="chargement()" class="flex flex-col items-center justify-center gap-3 py-10">
+    <mat-spinner diameter="32"></mat-spinner>
+    <p class="m-0 caption text-hint">Chargement des justificatifs…</p>
+  </div>
+
+  <ng-container *ngIf="!chargement()">
+
+    <!-- Liste des factures -->
+    <div *ngIf="factures().length > 0" class="rounded border divide-y">
+      <div *ngFor="let f of factures()"
+        class="px-4 py-3 flex items-center justify-between gap-4">
+
+        <div class="min-w-0">
+          <p class="m-0 body-2 font-medium">
+            <span class="text-primary-600">{{ f.numero_facture }}</span>
+            <span class="text-hint font-normal"> — {{ moisLabel(f) }}</span>
+          </p>
+          <p class="m-0 caption text-hint">
+            {{ f.date_paiement | date : 'dd/MM/yyyy' }}
+            &bull; {{ modeLabel(f) }}
+            <ng-container *ngIf="f.numero_transaction">
+              &bull; Réf. {{ f.numero_transaction }}
+            </ng-container>
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3 flex-none">
+          <span class="body-2 font-semibold text-green-700">
+            {{ f.montant_total | number }} FCFA
+          </span>
+
+          <button mat-icon-button type="button"
+            [disabled]="downloadingId() !== null"
+            matTooltip="Imprimer ce reçu"
+            (click)="telecharger(f)">
+            <mat-spinner *ngIf="downloadingId() === f.id; else icone" diameter="20"></mat-spinner>
+            <ng-template #icone>
+              <mat-icon svgIcon="mat:download" class="text-primary-600"></mat-icon>
+            </ng-template>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Aucun justificatif -->
+    <div *ngIf="factures().length === 0"
+      class="flex flex-col items-center justify-center gap-3 py-10">
+      <div class="w-14 h-14 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+        <mat-icon svgIcon="mat:receipt" class="icon-lg"></mat-icon>
+      </div>
+      <h3 class="title m-0">Aucun reçu</h3>
+      <p class="m-0 caption text-hint text-center">
+        Aucun règlement de mensualités n'a encore été encaissé pour cet élève.
+      </p>
+    </div>
+
+  </ng-container>
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button (click)="fermer()" mat-button type="button">Fermer</button>
+</mat-dialog-actions>

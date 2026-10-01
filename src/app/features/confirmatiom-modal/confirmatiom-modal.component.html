@@ -1,0 +1,31 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div
+      class="w-10 h-10 rounded-full flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none"
+      [ngClass]="data.destructive ? 'bg-red-100 text-red-600' : 'bg-primary-600/10 text-primary-600'">
+      <mat-icon svgIcon="mat:warning"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">{{ data.title }}</h2>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <mat-dialog-content class="px-6 py-4">
+    <p class="m-0 body-1">{{ data.message }}</p>
+  </mat-dialog-content>
+
+  <!-- Actions -->
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()">
+      {{ cancelLabel }}
+    </button>
+
+    <button mat-raised-button type="button"
+      [color]="data.destructive ? 'warn' : 'primary'"
+      (click)="onConfirm()">
+      {{ confirmLabel }}
+    </button>
+  </mat-dialog-actions>
+</div>

@@ -1,0 +1,70 @@
+<form [formGroup]="form" (ngSubmit)="enregistrer()">
+
+  <div mat-dialog-title class="flex items-center gap-3">
+    <mat-icon svgIcon="mat:check_circle" class="text-primary-600"></mat-icon>
+    <div>
+      <p class="m-0 title">Justifier l'absence</p>
+      <p class="m-0 caption text-hint">{{ eleve }} &bull; {{ contexte }}</p>
+    </div>
+  </div>
+
+  <mat-dialog-content class="flex flex-col gap-5 pt-2">
+
+    <mat-checkbox color="primary" formControlName="justifie">
+      Cette absence est justifiée
+    </mat-checkbox>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Motif</mat-label>
+      <textarea matInput formControlName="motif" rows="3"
+        placeholder="Certificat médical, mot des parents..."></textarea>
+      <mat-error *ngIf="form.get('motif')?.hasError('maxlength')">
+        Le motif ne peut pas dépasser 500 caractères.
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Justificatif déjà attaché : un nouveau document le remplacera -->
+    <div *ngIf="justificatifExistant" class="flex items-center gap-3 p-3 rounded border bg-gray-50">
+      <mat-icon svgIcon="mat:description" class="text-primary-600 icon-sm flex-none"></mat-icon>
+      <div class="min-w-0 flex-auto">
+        <p class="m-0 caption font-medium">Justificatif déjà joint</p>
+        <a [href]="justificatifExistant" target="_blank" rel="noopener"
+          class="caption text-primary-600 hover:underline">Consulter le document</a>
+      </div>
+    </div>
+
+    <div>
+      <p class="m-0 mb-2 caption text-hint">
+        {{ justificatifExistant ? 'Remplacer le justificatif' : 'Joindre un justificatif' }}
+        (PDF ou image, 2 Mo maximum)
+      </p>
+
+      <input type="file" accept="application/pdf,image/jpeg,image/png"
+        (change)="onFichier($event)" class="block w-full text-sm" />
+
+      <p *ngIf="fichier" class="m-0 mt-2 caption text-green-700 flex items-center gap-2">
+        <mat-icon svgIcon="mat:check_circle" class="icon-xs"></mat-icon>
+        {{ fichier.name }}
+        <button type="button" mat-icon-button class="!w-6 !h-6 !leading-6"
+          matTooltip="Retirer" (click)="retirerFichier()">
+          <mat-icon svgIcon="mat:close" class="icon-xs"></mat-icon>
+        </button>
+      </p>
+
+      <p *ngIf="erreurFichier" class="m-0 mt-2 caption text-red-600 flex items-center gap-2">
+        <mat-icon svgIcon="mat:error" class="icon-xs"></mat-icon>
+        {{ erreurFichier }}
+      </p>
+    </div>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="gap-2">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving">Annuler</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || saving">
+      <mat-spinner *ngIf="saving" diameter="18" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+      Enregistrer
+    </button>
+  </mat-dialog-actions>
+
+</form>

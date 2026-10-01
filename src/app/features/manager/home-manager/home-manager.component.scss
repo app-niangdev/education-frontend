@@ -1,0 +1,37 @@
+// Palettes de visualisation validées (script dataviz, CVD-safe).
+// Light : surface claire. Dark : teintes ajustées à la bande de luminosité.
+:host {
+  --viz-primary: #16a34a;   // vert (série unique : barres niveaux, total, jauge)
+  --viz-masculin: #4f46e5;  // indigo
+  --viz-feminin: #f59e0b;   // ambre
+  --viz-encaisse: #4f46e5;  // indigo (distingue les blocs financiers du total)
+  --viz-track: #e5e7eb;     // piste des jauges
+}
+
+:host-context(.vex-style-dark) {
+  --viz-primary: #16a34a;
+  --viz-masculin: #6366f1;
+  --viz-feminin: #d97706;
+  --viz-encaisse: #6366f1;
+  --viz-track: #374151;
+}
+
+// Textes internes aux SVG : portent des tokens de texte, jamais la couleur série.
+.donut-total {
+  font-size: 9px;
+  font-weight: 700;
+  fill: currentColor;
+}
+
+.donut-legende {
+  font-size: 3px;
+  fill: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.gauge-value {
+  font-size: 8px;
+  font-weight: 700;
+  fill: currentColor;
+}

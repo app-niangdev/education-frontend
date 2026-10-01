@@ -1,0 +1,133 @@
+<vex-liste-page
+  icon="mat:shopping_bag"
+  titre="Dépenses"
+  titreCarte="Liste des dépenses"
+  [sousTitre]="meta().total + ' dépense(s)'"
+  [loading]="loading"
+  [vide]="depenses().length === 0"
+  [aDesFiltres]="true"
+  [meta]="meta()"
+  [pageSizeOptions]="meta().pageSizeOptions ?? [5, 10, 25, 50]"
+  (pageChange)="onPageChange($event)">
+
+  <!-- Action en-tête -->
+  <button entete color="primary" mat-raised-button type="button" (click)="openAddDialog()"
+    class="hidden sm:inline-flex">
+    <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    Nouvelle dépense
+  </button>
+
+  <!-- Bandeau récapitulatif au-dessus de la liste -->
+  <div avant class="card p-6 flex flex-col gap-4" *ngIf="totaux">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div>
+        <p class="m-0 caption text-hint">Total des dépenses (filtre en cours)</p>
+        <p class="m-0 display-1 font-bold text-primary-600">{{ formatMontant(totaux.total) }}</p>
+      </div>
+      <p class="m-0 caption text-hint">
+        {{ totaux.nombre }} dépense(s)
+        <ng-container *ngIf="anneeScolaireNom"> &bull; année {{ anneeScolaireNom }}</ng-container>
+      </p>
+    </div>
+
+    <div class="flex flex-wrap gap-2" *ngIf="totaux.par_categorie.length > 0">
+      <span *ngFor="let c of totaux.par_categorie"
+        class="inline-flex items-center gap-2 text-xs font-medium bg-primary-600/5 text-primary-700 px-3 py-1 rounded-full">
+        {{ c.libelle }}
+        <span class="font-bold">{{ formatMontant(c.total) }}</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Filtres (barre d'outils) -->
+  <mat-form-field filtres appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-64">
+    <mat-label>Rechercher</mat-label>
+    <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput [formControl]="searchCtrl" placeholder="Libellé, bénéficiaire, référence…" />
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-44">
+    <mat-label>Catégorie</mat-label>
+    <mat-select [formControl]="$any(filtresForm.get('categorie'))">
+      <mat-option value="">Toutes</mat-option>
+      <mat-option *ngFor="let c of categories" [value]="c.valeur">{{ c.libelle }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field filtres appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-44">
+    <mat-label>Mode de paiement</mat-label>
+    <mat-select [formControl]="$any(filtresForm.get('mode_paiement'))">
+      <mat-option value="">Tous</mat-option>
+      <mat-option *ngFor="let m of modesPaiement" [value]="m.valeur">{{ m.libelle }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <!-- Période : présets + plage personnalisée -->
+  <mat-form-field filtres appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-52">
+    <mat-label>Période</mat-label>
+    <mat-icon matPrefix svgIcon="mat:date_range" class="mr-2 text-hint icon-sm"></mat-icon>
+    <mat-select [value]="periode" (selectionChange)="onPeriodeChange($event.value)">
+      <mat-option *ngFor="let p of periodePresets" [value]="p.value">{{ p.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <ng-container filtres *ngIf="periode === 'perso'" [formGroup]="filtresForm">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-44">
+      <mat-label>Du</mat-label>
+      <input matInput [matDatepicker]="pickerFrom" formControlName="date_from" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerFrom"></mat-datepicker-toggle>
+      <mat-datepicker #pickerFrom></mat-datepicker>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-44">
+      <mat-label>Au</mat-label>
+      <input matInput [matDatepicker]="pickerTo" formControlName="date_to" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerTo"></mat-datepicker-toggle>
+      <mat-datepicker #pickerTo></mat-datepicker>
+    </mat-form-field>
+  </ng-container>
+
+  <button filtres *ngIf="filtresActifs" mat-stroked-button type="button" class="self-start sm:self-center"
+    (click)="resetFiltres()">
+    <mat-icon svgIcon="mat:clear_all" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+    Réinitialiser
+  </button>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let depense of depenses()"
+    (modifier)="editDepense(depense)" (supprimer)="deleteDepense(depense)">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+      <mat-icon svgIcon="mat:shopping_bag" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">{{ depense.libelle }}</p>
+      <p class="m-0 caption text-hint truncate">
+        {{ depense.categorie_libelle }}
+        <ng-container *ngIf="depense.beneficiaire"> &bull; {{ depense.beneficiaire }}</ng-container>
+        &bull; {{ depense.mode_paiement_libelle }}
+      </p>
+    </div>
+
+    <!-- Date + montant à droite -->
+    <span secondaire class="caption text-hint">{{ depense.date_depense | date: 'dd/MM/yyyy' }}</span>
+    <span badge class="body-2 font-semibold text-primary-600">{{ formatMontant(depense.montant) }}</span>
+  </vex-liste-ligne>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:shopping_bag" class="icon-lg"></mat-icon>
+    </div>
+    <h3 class="title m-0">
+      {{ filtresActifs ? 'Aucune dépense pour ces filtres' : 'Aucune dépense' }}
+    </h3>
+    <p class="m-0 caption text-hint text-center">
+      {{ filtresActifs
+        ? 'Aucune dépense ne correspond aux critères sélectionnés.'
+        : 'Commencez par enregistrer la première dépense de l\'établissement.' }}
+    </p>
+    <button *ngIf="!filtresActifs" color="primary" mat-raised-button type="button" (click)="openAddDialog()">
+      <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+      Enregistrer une dépense
+    </button>
+  </div>
+</vex-liste-page>

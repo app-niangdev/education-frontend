@@ -1,0 +1,315 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div
+      class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon [svgIcon]="icone"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">{{ titre }}</h2>
+      <p class="m-0 caption text-hint">{{ data.eleve.nom_complet }} — {{ data.eleve.matricule }}</p>
+    </div>
+  </div>
+
+  <mat-dialog-content class="px-6 py-4">
+    <form [formGroup]="form" class="flex flex-col gap-4">
+
+      <!-- Identite -->
+      <ng-container *ngIf="section === 'identite'">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Nom</mat-label>
+            <input matInput formControlName="nom" />
+            <mat-error *ngIf="form.get('nom')?.hasError('required')">Le nom est obligatoire</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Prénom</mat-label>
+            <input matInput formControlName="prenom" />
+            <mat-error *ngIf="form.get('prenom')?.hasError('required')">Le prénom est obligatoire</mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Date de naissance</mat-label>
+            <input matInput [matDatepicker]="picker" [max]="maxDate" formControlName="date_naissance" />
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+            <mat-error *ngIf="form.get('date_naissance')?.hasError('required')">
+              La date de naissance est obligatoire
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Lieu de naissance</mat-label>
+            <input matInput formControlName="lieu_naissance" />
+          </mat-form-field>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+          <div class="flex flex-col gap-2">
+            <label class="caption text-hint">Sexe</label>
+            <mat-radio-group formControlName="sexe" class="flex gap-6">
+              <mat-radio-button value="M">Masculin</mat-radio-button>
+              <mat-radio-button value="F">Féminin</mat-radio-button>
+            </mat-radio-group>
+          </div>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Nationalité</mat-label>
+            <input matInput formControlName="nationalite" />
+          </mat-form-field>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Adresse</mat-label>
+            <input matInput formControlName="adresse" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Téléphone</mat-label>
+            <input matInput formControlName="telephone" />
+          </mat-form-field>
+        </div>
+      </ng-container>
+
+      <!-- Medical -->
+      <ng-container *ngIf="section === 'medical'">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Groupe sanguin</mat-label>
+            <mat-select formControlName="groupe_sanguin">
+              <mat-option [value]="null">Non renseigné</mat-option>
+              <mat-option *ngFor="let g of groupesSanguins" [value]="g">{{ g }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Aptitude sportive</mat-label>
+            <mat-select formControlName="aptitude_sportive">
+              <mat-option *ngFor="let a of aptitudes" [value]="a.value">{{ a.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Allergies</mat-label>
+          <textarea matInput formControlName="allergies" rows="2"></textarea>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Maladies chroniques</mat-label>
+          <textarea matInput formControlName="maladies_chroniques" rows="2"></textarea>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Consignes d'urgence</mat-label>
+          <textarea matInput formControlName="consignes_urgence" rows="2"></textarea>
+        </mat-form-field>
+      </ng-container>
+
+      <!-- Scolarite -->
+      <ng-container *ngIf="section === 'scolarite'">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Statut d'inscription</mat-label>
+          <mat-select formControlName="statut_inscription">
+            <mat-option *ngFor="let s of statuts" [value]="s.value">{{ s.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full" *ngIf="transfere">
+          <mat-label>Établissement d'origine</mat-label>
+          <input matInput formControlName="etablissement_origine" placeholder="Dernière école fréquentée" />
+          <mat-error *ngIf="form.get('etablissement_origine')?.hasError('required')">
+            Obligatoire pour un élève transféré
+          </mat-error>
+        </mat-form-field>
+
+        <p class="m-0 caption text-hint" *ngIf="!transfere">
+          L'établissement d'origine ne concerne que les élèves transférés.
+        </p>
+      </ng-container>
+
+      <!-- Parents -->
+      <ng-container *ngIf="section === 'parents'">
+        <h4 class="body-1 font-semibold m-0 flex items-center gap-2">
+          <mat-icon svgIcon="mat:person" class="icon-sm text-primary-600"></mat-icon>
+          Le père
+        </h4>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Nom du père</mat-label>
+            <input matInput formControlName="nom_pere" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Prénom du père</mat-label>
+            <input matInput formControlName="prenom_pere" />
+          </mat-form-field>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Téléphone du père</mat-label>
+            <input matInput formControlName="telephone_pere" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Profession du père</mat-label>
+            <input matInput formControlName="profession_pere" />
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Adresse du père (si différente)</mat-label>
+          <input matInput formControlName="adresse_pere" />
+        </mat-form-field>
+
+        <h4 class="body-1 font-semibold m-0 mt-2 flex items-center gap-2">
+          <mat-icon svgIcon="mat:person" class="icon-sm text-primary-600"></mat-icon>
+          La mère
+        </h4>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Nom de jeune fille</mat-label>
+            <input matInput formControlName="nom_mere" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Prénom de la mère</mat-label>
+            <input matInput formControlName="prenom_mere" />
+          </mat-form-field>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Téléphone de la mère</mat-label>
+            <input matInput formControlName="telephone_mere" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Profession de la mère</mat-label>
+            <input matInput formControlName="profession_mere" />
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Adresse de la mère (si différente)</mat-label>
+          <input matInput formControlName="adresse_mere" />
+        </mat-form-field>
+      </ng-container>
+
+      <!-- Tuteur -->
+      <ng-container *ngIf="section === 'tuteur'">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Lien de parenté</mat-label>
+            <mat-select formControlName="lien_parente">
+              <mat-option *ngFor="let l of liensParente" [value]="l.value">{{ l.label }}</mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('lien_parente')?.hasError('required')">
+              Le lien de parenté est obligatoire
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>NIN {{ ninRequis ? '' : '(optionnel)' }}</mat-label>
+            <input matInput formControlName="nin" />
+            <mat-hint *ngIf="ninRequis">Requis : le tuteur n'est ni le père ni la mère</mat-hint>
+            <mat-error *ngIf="form.get('nin')?.hasError('required')">
+              Le NIN est obligatoire pour un tuteur tiers
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Contrairement au formulaire de création, les champs restent
+             visibles ici : ce modal n'édite que la section tuteur, le bloc
+             père/mère n'y figure pas. Les masquer priverait de tout moyen de
+             corriger une coordonnée. Ils ne sont simplement plus obligatoires
+             quand un parent fait foi. -->
+        <div *ngIf="!ninRequis && form.get('lien_parente')?.value"
+          class="flex items-start gap-3 px-4 py-3 rounded bg-primary-600/5 border border-primary-600/20 mb-4">
+          <mat-icon svgIcon="mat:info" class="icon-sm text-primary-600 flex-none mt-0.5"></mat-icon>
+          <p class="m-0 caption text-hint">
+            Ces coordonnées reprennent celles du parent désigné. Les modifier
+            ici ne change que la fiche tuteur, pas la fiche des parents.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Nom du tuteur</mat-label>
+            <input matInput formControlName="nom" />
+            <mat-error *ngIf="form.get('nom')?.hasError('required')">Le nom est obligatoire</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Prénom du tuteur</mat-label>
+            <input matInput formControlName="prenom" />
+            <mat-error *ngIf="form.get('prenom')?.hasError('required')">Le prénom est obligatoire</mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Téléphone principal</mat-label>
+            <input matInput formControlName="telephone_principal" />
+            <mat-hint>Utilisé pour les alertes SMS de l'école</mat-hint>
+            <mat-error *ngIf="form.get('telephone_principal')?.hasError('required')">
+              Le téléphone principal est obligatoire
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Téléphone secondaire</mat-label>
+            <input matInput formControlName="telephone_secondaire" />
+          </mat-form-field>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Email</mat-label>
+            <input matInput type="email" formControlName="email" />
+            <mat-error *ngIf="form.get('email')?.hasError('email')">
+              L'adresse email n'est pas valide
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Profession</mat-label>
+            <input matInput formControlName="profession" />
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Adresse du tuteur</mat-label>
+          <input matInput formControlName="adresse" />
+          <mat-error *ngIf="form.get('adresse')?.hasError('required')">
+            L'adresse est obligatoire
+          </mat-error>
+        </mat-form-field>
+      </ng-container>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">Annuler</button>
+
+    <button mat-raised-button color="primary" type="button" (click)="onSubmit()"
+      [disabled]="loading || form.invalid">
+      <ng-container *ngIf="!loading">
+        <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Enregistrer
+      </ng-container>
+      <ng-container *ngIf="loading">
+        <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        Enregistrement...
+      </ng-container>
+    </button>
+  </mat-dialog-actions>
+</div>

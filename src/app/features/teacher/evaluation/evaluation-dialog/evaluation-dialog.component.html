@@ -1,0 +1,122 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center px-6 py-4 border-b">
+    <div
+      class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center ltr:mr-3 rtl:ml-3 flex-none">
+      <mat-icon svgIcon="mat:grading"></mat-icon>
+    </div>
+    <div class="flex-auto">
+      <h2 mat-dialog-title class="text-xl font-semibold m-0">
+        {{ data.isEdit ? "Modifier l'évaluation" : 'Nouvelle évaluation' }}
+      </h2>
+      <p class="m-0 caption text-hint">
+        {{ data.isEdit ? 'Modifiez les informations de cette évaluation' : 'Créez une évaluation pour une de vos classes' }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <mat-dialog-content class="px-6 py-4">
+    <form [formGroup]="form" class="flex flex-col gap-4">
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Classe et matière</mat-label>
+        <mat-icon matPrefix svgIcon="mat:class" class="mr-2 text-hint icon-sm"></mat-icon>
+        <mat-select formControlName="affectation_id">
+          <mat-option *ngFor="let a of data.affectations" [value]="a.id">
+            {{ affectationLabel(a) }}
+          </mat-option>
+        </mat-select>
+        <mat-hint *ngIf="data.isEdit">La classe/matière n'est pas modifiable après création.</mat-hint>
+        <mat-error *ngIf="form.get('affectation_id')?.hasError('required')">
+          La classe et la matière sont obligatoires
+        </mat-error>
+      </mat-form-field>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Période</mat-label>
+          <mat-icon matPrefix svgIcon="mat:date_range" class="mr-2 text-hint icon-sm"></mat-icon>
+          <mat-select formControlName="periode_id">
+            <mat-option *ngFor="let p of data.periodes" [value]="p.id">
+              {{ p.libelle }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="form.get('periode_id')?.hasError('required')">
+            La période est obligatoire
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Type d'évaluation</mat-label>
+          <mat-icon matPrefix svgIcon="mat:category" class="mr-2 text-hint icon-sm"></mat-icon>
+          <mat-select formControlName="type">
+            <mat-option *ngFor="let t of types" [value]="t.value">
+              {{ t.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Titre</mat-label>
+        <mat-icon matPrefix svgIcon="mat:title" class="mr-2 text-hint icon-sm"></mat-icon>
+        <input matInput formControlName="titre" placeholder="Ex: Devoir n°1 — Fonctions" />
+        <mat-error *ngIf="form.get('titre')?.hasError('required')">
+          Le titre est obligatoire
+        </mat-error>
+        <mat-error *ngIf="form.get('titre')?.hasError('maxlength')">
+          Le titre ne peut pas dépasser 255 caractères
+        </mat-error>
+      </mat-form-field>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Barème (sur)</mat-label>
+          <input matInput type="number" formControlName="bareme" min="1" max="100" />
+          <span matSuffix class="text-hint mr-3">pts</span>
+          <mat-hint>Par défaut : {{ data.baremeDefaut }}</mat-hint>
+          <mat-error *ngIf="form.get('bareme')?.hasError('required')">Obligatoire</mat-error>
+          <mat-error *ngIf="form.get('bareme')?.hasError('min') || form.get('bareme')?.hasError('max')">
+            Entre 1 et 100
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Coefficient</mat-label>
+          <input matInput [value]="coefficientDeduit ?? '—'" readonly />
+          <mat-icon matPrefix svgIcon="mat:lock" class="mr-2 text-hint icon-sm"></mat-icon>
+          <mat-hint>Déduit de la matière dans la classe</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Date</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="date_evaluation" />
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+          <mat-error *ngIf="form.get('date_evaluation')?.hasError('required')">Obligatoire</mat-error>
+        </mat-form-field>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <!-- Actions -->
+  <mat-dialog-actions class="px-6 py-4 border-t flex justify-end gap-3">
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="loading">
+      Annuler
+    </button>
+
+    <button mat-raised-button color="primary" type="button" (click)="onSubmit()"
+      [disabled]="!canSubmit">
+      <ng-container *ngIf="!loading">
+        <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        {{ data.isEdit ? 'Modifier' : 'Créer' }}
+      </ng-container>
+      <ng-container *ngIf="loading">
+        <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+        {{ data.isEdit ? 'Modification...' : 'Création...' }}
+      </ng-container>
+    </button>
+  </mat-dialog-actions>
+</div>

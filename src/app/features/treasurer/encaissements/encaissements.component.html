@@ -1,0 +1,95 @@
+<vex-liste-page
+  icon="mat:receipt"
+  titre="Inscriptions"
+  titreCarte="Inscriptions à encaisser"
+  sousTitre="En attente de validation ou partiellement payées — année en cours"
+  [loading]="loading"
+  [vide]="inscriptions().length === 0"
+  [aDesFiltres]="true"
+  [meta]="meta()"
+  [pageSizeOptions]="meta().pageSizeOptions ?? [5, 10, 25, 50]"
+  (pageChange)="onPageChange($event)">
+
+  <!-- Recherche -->
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-80" subscriptSizing="dynamic">
+    <mat-label>Rechercher</mat-label>
+    <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput [formControl]="searchCtrl" placeholder="N° inscription, élève, matricule, classe" />
+  </mat-form-field>
+
+  <!-- Accès caisse retiré : consultation possible, encaissement non. -->
+  <div avant *ngIf="!accesCaisse"
+    class="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3">
+    <mat-icon svgIcon="mat:lock" class="text-amber-700 icon-sm flex-none mt-0.5"></mat-icon>
+    <div>
+      <p class="m-0 body-2 font-medium text-amber-900">Accès à la caisse désactivé</p>
+      <p class="m-0 caption text-amber-800">
+        Vous pouvez consulter les inscriptions, mais pas enregistrer d'encaissement.
+        Contactez un administrateur pour rétablir cet accès.
+      </p>
+    </div>
+  </div>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let inscription of inscriptions()">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+      <mat-icon svgIcon="mat:receipt" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">
+        {{ inscription.eleve?.nom_complet ?? '—' }}
+        <span class="caption text-hint font-normal">({{ inscription.eleve?.matricule }})</span>
+      </p>
+      <p class="m-0 caption text-hint">
+        <span class="font-medium text-primary-600">{{ inscription.numero_inscription }}</span>
+        &bull; <span>{{ inscription.classe?.nom ?? '—' }}</span>
+        &bull; <span>{{ inscription.date_inscription | date : 'dd/MM/yyyy' }}</span>
+      </p>
+    </div>
+
+    <!-- Montants + statut + action à droite -->
+    <span secondaire class="hidden md:flex flex-col items-end gap-1">
+      <span class="caption text-hint">
+        Reste :
+        <span class="font-semibold text-primary-600">
+          {{ inscription.montant_inscription_restant ?? inscription.montant_inscription | number }} FCFA
+        </span>
+      </span>
+      <span class="caption text-hint">
+        {{ inscription.montant_inscription_paye ?? 0 | number }} /
+        {{ inscription.montant_inscription | number }} FCFA
+      </span>
+    </span>
+    <span secondaire class="px-2 py-1 rounded-full text-xs font-medium" [ngClass]="statutPaiementClass(inscription)">
+      {{ statutPaiementLabel(inscription) }}
+    </span>
+    <button secondaire mat-raised-button color="primary" type="button"
+      (click)="valider(inscription)" [disabled]="!accesCaisse"
+      [matTooltip]="accesCaisse ? '' : 'Votre accès à la caisse a été désactivé'"
+      [matTooltipDisabled]="accesCaisse">
+      <mat-icon svgIcon="mat:check_circle" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+      {{ estEnAttente(inscription) ? 'Valider' : 'Encaisser' }}
+    </button>
+  </vex-liste-ligne>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:check_circle" class="icon-lg"></mat-icon>
+    </div>
+
+    <ng-container *ngIf="searchCtrl.value; else aJour">
+      <h3 class="title m-0">Aucun résultat</h3>
+      <p class="m-0 caption text-hint text-center">
+        Aucune inscription à encaisser ne correspond à « {{ searchCtrl.value }} ».
+      </p>
+    </ng-container>
+
+    <ng-template #aJour>
+      <h3 class="title m-0">Tout est à jour</h3>
+      <p class="m-0 caption text-hint text-center">
+        Aucune inscription en attente de paiement pour l'année en cours.
+      </p>
+    </ng-template>
+  </div>
+</vex-liste-page>

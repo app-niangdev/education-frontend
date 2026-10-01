@@ -1,0 +1,38 @@
+<div class="profile-wrapper">
+
+  <!-- ── Header ── -->
+  <div class="profile-header">
+    <div class="profile-header__top"></div>
+    <div class="profile-header__content">
+
+      <div class="profile-header__avatar-wrap">
+        <img @scaleIn class="profile-header__avatar" [src]="userConnect?.image_url || 'assets/img/avatars/1.jpg'"
+          [alt]="userConnect?.full_name" />
+        <span class="profile-header__status-dot" [class.active]="userConnect?.status"
+          [class.inactive]="!userConnect?.status">
+        </span>
+      </div>
+
+      <div class="profile-header__meta">
+        <h1 @fadeInRight class="profile-header__name">{{ userConnect?.full_name ?? '' }}</h1>
+        <p @fadeInRight class="profile-header__email">{{ userConnect?.email }}</p>
+      </div>
+
+    </div>
+
+    <nav [tabPanel]="tabPanel" class="profile-header__nav border-0" mat-tab-nav-bar>
+      <a #rla="routerLinkActive" *ngFor="let link of links" [active]="rla.isActive" [disabled]="link.disabled ?? false"
+        [routerLinkActiveOptions]="link.routerLinkActiveOptions || { exact: false }" [routerLink]="link.route"
+        mat-tab-link queryParamsHandling="preserve" routerLinkActive>
+        {{ link.label }}
+      </a>
+    </nav>
+    <mat-tab-nav-panel #tabPanel></mat-tab-nav-panel>
+  </div>
+
+  <!-- ── Contenu des onglets ── -->
+  <div class="profile-body">
+    <router-outlet></router-outlet>
+  </div>
+
+</div>

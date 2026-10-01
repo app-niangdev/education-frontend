@@ -1,0 +1,87 @@
+.profile-wrapper {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+// ── Header card ──────────────────────────────────────────
+.profile-header {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  @apply bg-foreground shadow-b;
+
+  &__top {
+    height: 80px;
+    background: linear-gradient(135deg, rgb(var(--vex-color-primary-600)) 0%, rgb(var(--vex-color-primary-400)) 100%);
+  }
+
+  &__content {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.25rem;
+    padding: 0 1.75rem;
+    margin-top: -50px;
+  }
+
+  &__avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  &__avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid white;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    display: block;
+  }
+
+  &__status-dot {
+    position: absolute;
+    bottom: 6px;
+    right: 4px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 2px solid white;
+
+    &.active   { background: #22c55e; }
+    &.inactive { background: #ef4444; }
+  }
+
+  &__meta {
+    padding-bottom: 0.5rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    @apply text-default;
+  }
+
+  &__email {
+    font-size: 0.8rem;
+    margin: 0.1rem 0 0;
+    @apply text-hint;
+  }
+
+  &__nav {
+    padding: 0 1.25rem;
+    margin-top: 0.75rem;
+  }
+}
+
+// ── Body ────────────────────────────────────────────────
+.profile-body {
+  flex: 1;
+}

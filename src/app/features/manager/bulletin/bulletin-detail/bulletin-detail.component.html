@@ -1,0 +1,238 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- Header -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0 gap-4">
+      <button mat-icon-button type="button" matTooltip="Retour à la liste" (click)="retourListe()">
+        <mat-icon svgIcon="mat:arrow_back"></mat-icon>
+      </button>
+
+      <h2 class="display-1 font-bold m-0 flex items-center w-full">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:assignment"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">
+          {{ bulletin ? bulletin.eleve_prenom + ' ' + bulletin.eleve_nom : 'Bulletin' }}
+        </span>
+      </h2>
+
+      <div class="flex items-center gap-3 flex-none" *ngIf="bulletin">
+        <button mat-stroked-button color="primary" type="button" [disabled]="downloading"
+          (click)="telechargerPdf()" class="hidden sm:inline-flex">
+          <mat-icon *ngIf="!downloading" svgIcon="mat:description"
+            class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+          <mat-spinner *ngIf="downloading" diameter="18" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+          PDF
+        </button>
+
+        <button *ngIf="!lectureSeule && !estPublie" mat-raised-button color="primary" type="button"
+          [disabled]="publishing" (click)="publier()" class="hidden sm:inline-flex">
+          <mat-icon svgIcon="mat:assignment_turned_in"
+            class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+          Publier
+        </button>
+
+        <button *ngIf="!lectureSeule && estPublie" mat-stroked-button color="warn" type="button"
+          [disabled]="publishing" (click)="depublier()" class="hidden sm:inline-flex">
+          <mat-icon svgIcon="mat:lock" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+          Dépublier
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid px-6">
+    <div class="mt-6 flex flex-col gap-6">
+
+      <!-- Loading -->
+      <div *ngIf="loading" class="card flex flex-col items-center justify-center gap-4 p-12">
+        <mat-spinner diameter="48"></mat-spinner>
+        <p class="m-0 text-hint">Chargement du bulletin...</p>
+      </div>
+
+      <ng-container *ngIf="!loading && bulletin">
+
+        <!-- Brouillon : le document n'est pas definitif -->
+        <div *ngIf="!estPublie"
+          class="card px-6 py-3 bg-amber-50 border border-amber-200 flex items-start gap-3">
+          <mat-icon svgIcon="mat:warning" class="text-amber-600 icon-sm flex-none mt-0.5"></mat-icon>
+          <p class="m-0 caption text-amber-800">
+            <strong>Brouillon</strong> — ce bulletin n'est pas définitif. Il sera recalculé à chaque
+            génération tant qu'il n'est pas publié.
+          </p>
+        </div>
+
+        <!-- Identite -->
+        <div class="card">
+          <div class="px-6 py-4 border-b flex items-center justify-between gap-4">
+            <div>
+              <h2 class="title m-0">Bulletin de notes</h2>
+              <p class="m-0 caption text-hint">
+                {{ bulletin.classe_nom }} &bull; {{ bulletin.periode?.libelle ?? '—' }}
+                &bull; {{ bulletin.annee_scolaire?.nom ?? '—' }}
+              </p>
+            </div>
+
+            <span class="px-3 py-1 rounded-full caption font-medium"
+              [ngClass]="estPublie ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'">
+              {{ bulletin.statut_libelle }}
+            </span>
+          </div>
+
+          <div class="px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <p class="m-0 caption text-hint">Matricule</p>
+              <p class="m-0 body-2 font-medium">{{ bulletin.eleve_matricule ?? '—' }}</p>
+            </div>
+            <div>
+              <p class="m-0 caption text-hint">Né(e) le</p>
+              <p class="m-0 body-2 font-medium">
+                {{ bulletin.eleve_date_naissance ? (bulletin.eleve_date_naissance | date: 'dd/MM/yyyy') : '—' }}
+              </p>
+            </div>
+            <div>
+              <p class="m-0 caption text-hint">Lieu de naissance</p>
+              <p class="m-0 body-2 font-medium">{{ bulletin.eleve_lieu_naissance ?? '—' }}</p>
+            </div>
+            <div>
+              <p class="m-0 caption text-hint">Effectif de la classe</p>
+              <p class="m-0 body-2 font-medium">{{ bulletin.effectif_classe }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Les disciplines : meme structure que le PDF -->
+        <div class="card overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="bg-primary-600 text-white">
+                <th class="px-4 py-3 text-left caption font-medium uppercase">Disciplines</th>
+                <th class="px-3 py-3 text-center caption font-medium uppercase">Devoir</th>
+                <th class="px-3 py-3 text-center caption font-medium uppercase">Comp</th>
+                <th class="px-3 py-3 text-center caption font-medium uppercase">Moy/20</th>
+                <th class="px-3 py-3 text-center caption font-medium uppercase">Coef</th>
+                <th class="px-3 py-3 text-center caption font-medium uppercase">Moy x</th>
+                <th class="px-3 py-3 text-center caption font-medium uppercase">Rang</th>
+                <th class="px-4 py-3 text-left caption font-medium uppercase">Appréciations</th>
+              </tr>
+            </thead>
+
+            <tbody class="divide-y">
+              <tr *ngFor="let ligne of bulletin.lignes" [class.text-hint]="!ligne.notee">
+                <td class="px-4 py-3 body-2">{{ ligne.matiere_nom }}</td>
+                <td class="px-3 py-3 text-center body-2">{{ format(ligne.moy_devoirs) }}</td>
+                <td class="px-3 py-3 text-center body-2">{{ format(ligne.composition) }}</td>
+                <td class="px-3 py-3 text-center body-2 font-medium">{{ format(ligne.moyenne) }}</td>
+                <td class="px-3 py-3 text-center body-2">{{ ligne.coefficient ?? '-' }}</td>
+                <td class="px-3 py-3 text-center body-2">{{ format(ligne.moy_x_coef) }}</td>
+                <td class="px-3 py-3 text-center body-2">
+                  {{ ligne.rang ?? '' }}
+                  <span *ngIf="ligne.rang_ex_aequo" class="caption text-hint">ex</span>
+                </td>
+                <td class="px-4 py-3 body-2">{{ ligne.appreciation_libelle ?? '' }}</td>
+              </tr>
+
+              <tr class="bg-gray-100 font-bold">
+                <td class="px-4 py-3 body-2" colspan="4">TOTAL</td>
+                <td class="px-3 py-3 text-center body-2">{{ bulletin.total_coefficients }}</td>
+                <td class="px-3 py-3 text-center body-2">{{ format(bulletin.total_points) }}</td>
+                <td colspan="2"></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Synthese : les cases Retards / Absences attendent le module d'assiduite -->
+          <div class="px-6 py-4 border-t grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <p class="m-0 caption text-hint">Moyenne générale</p>
+              <p class="m-0 title font-bold"
+                [class.text-green-600]="+(bulletin.moyenne_generale ?? 0) >= 10"
+                [class.text-red-600]="bulletin.moyenne_generale !== null && +bulletin.moyenne_generale < 10">
+                {{ format(bulletin.moyenne_generale) }}<span class="caption text-hint">/20</span>
+              </p>
+            </div>
+            <div>
+              <p class="m-0 caption text-hint">Rang</p>
+              <p class="m-0 title font-bold">
+                {{ bulletin.rang ?? '—' }}
+                <span *ngIf="bulletin.rang_ex_aequo" class="caption text-hint font-normal">ex æquo</span>
+              </p>
+            </div>
+            <div>
+              <p class="m-0 caption text-hint">Retards</p>
+              <p class="m-0 body-1 text-hint">{{ bulletin.retards ?? '—' }}</p>
+            </div>
+            <div>
+              <p class="m-0 caption text-hint">Absences</p>
+              <p class="m-0 body-1 text-hint">{{ bulletin.absences ?? '—' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conseil de classe -->
+        <div class="card">
+          <div class="px-6 py-4 border-b flex items-center justify-between gap-4">
+            <div>
+              <h2 class="title m-0">Conseil de classe</h2>
+              <p class="m-0 caption text-hint">Appréciation générale, distinction et observations</p>
+            </div>
+
+            <button *ngIf="!lectureSeule && !estPublie" mat-stroked-button color="primary" type="button"
+              (click)="ouvrirConseilClasse()">
+              <mat-icon svgIcon="mat:edit" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+              {{ bulletin.decision_conseil || bulletin.distinction || bulletin.observations ? 'Modifier' : 'Saisir' }}
+            </button>
+          </div>
+
+          <div class="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+              <p class="m-0 mb-2 caption text-hint">Appréciation générale</p>
+              <div class="flex flex-col gap-1">
+                <p *ngFor="let d of decisions" class="m-0 body-2 flex items-center gap-2"
+                  [class.font-semibold]="bulletin.decision_conseil === d.value"
+                  [class.text-hint]="bulletin.decision_conseil !== d.value">
+                  <mat-icon
+                    [svgIcon]="bulletin.decision_conseil === d.value ? 'mat:check_circle' : 'mat:radio_button_unchecked'"
+                    class="icon-sm"
+                    [class.text-primary-600]="bulletin.decision_conseil === d.value"></mat-icon>
+                  {{ d.label }}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <p class="m-0 mb-2 caption text-hint">Distinction</p>
+              <div class="flex flex-col gap-1">
+                <p *ngFor="let d of distinctions" class="m-0 body-2 flex items-center gap-2"
+                  [class.font-semibold]="bulletin.distinction === d.value"
+                  [class.text-hint]="bulletin.distinction !== d.value">
+                  <mat-icon
+                    [svgIcon]="bulletin.distinction === d.value ? 'mat:check_circle' : 'mat:radio_button_unchecked'"
+                    class="icon-sm"
+                    [class.text-primary-600]="bulletin.distinction === d.value"></mat-icon>
+                  {{ d.label }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-6 pb-4">
+            <p class="m-0 mb-2 caption text-hint">Observations du conseil des professeurs</p>
+            <p class="m-0 body-2 whitespace-pre-line border rounded p-3 min-h-[64px]"
+              [class.text-hint]="!bulletin.observations">
+              {{ bulletin.observations ?? 'Aucune observation saisie.' }}
+            </p>
+          </div>
+
+          <div *ngIf="estPublie && bulletin.publie_le" class="px-6 pb-4">
+            <p class="m-0 caption text-hint">
+              Publié le {{ bulletin.publie_le | date: 'dd/MM/yyyy à HH:mm' }}
+            </p>
+          </div>
+        </div>
+
+      </ng-container>
+    </div>
+  </div>
+</div>

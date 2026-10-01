@@ -1,0 +1,25 @@
+// Palettes de visualisation validées (script dataviz, CVD-safe).
+// Ordre catégoriel fixe : c1 → c4, jamais recyclé.
+:host {
+  --viz-primary: #16a34a;
+  --viz-c1: #16a34a;   // Espèces (vert)
+  --viz-c2: #4f46e5;   // Wave (indigo)
+  --viz-c3: #f59e0b;   // Orange Money (ambre)
+  --viz-c4: #dc2626;   // Free Money (rouge)
+  --viz-track: #e5e7eb;
+}
+
+:host-context(.vex-style-dark) {
+  --viz-primary: #16a34a;
+  --viz-c1: #16a34a;
+  --viz-c2: #6366f1;
+  --viz-c3: #d97706;
+  --viz-c4: #dc2626;
+  --viz-track: #374151;
+}
+
+.gauge-value {
+  font-size: 8px;
+  font-weight: 700;
+  fill: currentColor;
+}

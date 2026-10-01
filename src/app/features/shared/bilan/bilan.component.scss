@@ -1,0 +1,96 @@
+// Palette de visualisation validée (script dataviz, CVD-safe).
+//
+// Encaissé / dépensé sont indigo et vert, PAS vert et rouge : le couple
+// vert-rouge tombe à ΔE 5.0 sous deutéranopie — les deux séries deviennent
+// indistinguables pour un lecteur daltonien, alors que c'est justement
+// l'opposition que le graphique doit porter. Vert × indigo tient à ΔE 31.7.
+//
+// Le rouge et l'ambre restent réservés au statut (déficit, alerte d'écart),
+// où ils viennent toujours avec une icône et un libellé, jamais seuls.
+:host {
+  --viz-encaisse: #16a34a; // vert
+  --viz-depense: #4f46e5;  // indigo
+  --viz-track: #e5e7eb;
+  --viz-surface: #ffffff;
+
+  // Ventilation des dépenses : rampe séquentielle d'une seule teinte
+  // (magnitude), du poste le plus lourd au plus léger.
+  --viz-seq-1: #312e81;
+  --viz-seq-2: #4338ca;
+  --viz-seq-3: #4f46e5;
+  --viz-seq-4: #6366f1;
+  --viz-seq-5: #818cf8;
+  --viz-seq-6: #a5b4fc;
+  --viz-seq-7: #c7d2fe;
+
+  // Statut : réservé, jamais recyclé en couleur de série.
+  --viz-positif: #16a34a;
+  --viz-negatif: #dc2626;
+  --viz-alerte: #b45309;
+}
+
+:host-context(.vex-style-dark) {
+  --viz-encaisse: #16a34a;
+  --viz-depense: #6366f1;
+  --viz-track: #374151;
+  --viz-surface: #1f2937;
+
+  --viz-seq-1: #4338ca;
+  --viz-seq-2: #4f46e5;
+  --viz-seq-3: #6366f1;
+  --viz-seq-4: #818cf8;
+  --viz-seq-5: #a5b4fc;
+  --viz-seq-6: #c7d2fe;
+  --viz-seq-7: #e0e7ff;
+
+  --viz-positif: #16a34a;
+  --viz-negatif: #ef4444;
+  --viz-alerte: #f59e0b;
+}
+
+.gauge-value {
+  font-size: 8px;
+  font-weight: 700;
+  fill: currentColor;
+}
+
+// Colonnes de l'évolution mensuelle. L'extrémité de la donnée est arrondie,
+// la base reste carrée sur la ligne de référence.
+.colonne {
+  border-radius: 4px 4px 0 0;
+  transition: opacity 0.15s ease;
+}
+
+// La cible de survol est la colonne entière, pas la seule barre : viser un
+// mois creux reviendrait sinon à viser quelques pixels de haut.
+.colonne-groupe {
+  cursor: default;
+  outline: none;
+}
+
+.colonne-groupe:focus-visible {
+  outline: 2px solid var(--viz-depense);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+.colonne-groupe:hover .colonne {
+  opacity: 0.55;
+}
+
+.colonne-groupe:hover .colonne-active,
+.colonne-groupe:focus-within .colonne {
+  opacity: 1;
+}
+
+// Le mois sélectionné garde son relief quand les autres s'effacent.
+.mois-actif {
+  background-color: rgb(79 70 229 / 0.08);
+  border-radius: 6px;
+}
+
+// Barres horizontales de la ventilation par poste.
+.barre-poste {
+  border-radius: 0 4px 4px 0;
+  min-width: 2px;
+}

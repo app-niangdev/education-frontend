@@ -1,0 +1,161 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- Header -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0 gap-4">
+      <button mat-icon-button type="button" matTooltip="Retour au registre" (click)="retour()">
+        <mat-icon svgIcon="mat:arrow_back"></mat-icon>
+      </button>
+
+      <h2 class="display-1 font-bold m-0 flex items-center w-full">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:person"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">
+          {{ fiche?.eleve?.nom_complet ?? 'Fiche d\'assiduité' }}
+        </span>
+      </h2>
+
+      <div class="flex items-center gap-3 flex-none">
+        <mat-form-field appearance="outline" class="w-44" subscriptSizing="dynamic">
+          <mat-label>Période</mat-label>
+          <mat-select [formControl]="periodeCtrl">
+            <mat-option [value]="null">Toute l'année</mat-option>
+            <mat-option *ngFor="let p of periodes" [value]="p.id">{{ p.libelle }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-stroked-button color="primary" type="button"
+          [disabled]="downloading || !fiche" (click)="telechargerPdf()"
+          class="hidden sm:inline-flex">
+          <mat-icon *ngIf="!downloading" svgIcon="mat:description"
+            class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+          <mat-spinner *ngIf="downloading" diameter="18" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+          PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid px-6">
+    <div class="mt-6 flex flex-col gap-6">
+
+      <!-- Loading -->
+      <div *ngIf="loading" class="card flex flex-col items-center justify-center gap-4 p-12">
+        <mat-spinner diameter="48"></mat-spinner>
+        <p class="m-0 text-hint">Chargement de la fiche...</p>
+      </div>
+
+      <ng-container *ngIf="!loading && fiche">
+
+        <!-- Les totaux -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="card px-6 py-4">
+            <p class="m-0 caption text-hint">Heures d'absence</p>
+            <p class="m-0 display-1 font-bold text-red-600">
+              {{ fiche.totaux.heures_absence }}<span class="body-1 text-hint"> h</span>
+            </p>
+          </div>
+
+          <div class="card px-6 py-4">
+            <p class="m-0 caption text-hint">Dont non justifiées</p>
+            <p class="m-0 display-1 font-bold"
+              [class.text-red-600]="fiche.totaux.heures_absence_non_justifiee > 0"
+              [class.text-green-600]="fiche.totaux.heures_absence_non_justifiee === 0">
+              {{ fiche.totaux.heures_absence_non_justifiee }}<span class="body-1 text-hint"> h</span>
+            </p>
+          </div>
+
+          <div class="card px-6 py-4">
+            <p class="m-0 caption text-hint">Retards</p>
+            <p class="m-0 display-1 font-bold text-amber-600">{{ fiche.totaux.retards }}</p>
+          </div>
+
+          <div class="card px-6 py-4">
+            <p class="m-0 caption text-hint">Renvois de cours</p>
+            <p class="m-0 display-1 font-bold text-purple-600">{{ fiche.totaux.renvois }}</p>
+          </div>
+        </div>
+
+        <!-- L'historique -->
+        <div class="card">
+          <div class="px-6 py-4 border-b">
+            <h2 class="title m-0">Historique détaillé</h2>
+            <p class="m-0 caption text-hint">
+              {{ fiche.totaux.anomalies }} anomalie(s)
+              <span *ngIf="fiche.eleve?.classe_actuelle">
+                &bull; {{ fiche.eleve.classe_actuelle?.nom }}
+              </span>
+            </p>
+          </div>
+
+          <div class="divide-y" *ngIf="presences.length > 0">
+            <div *ngFor="let presence of presences"
+              class="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 transition-colors duration-150">
+
+              <div class="flex items-center gap-4 flex-auto min-w-0">
+                <div class="w-10 h-10 rounded-full flex-none flex items-center justify-center"
+                  [ngClass]="presence.justifie ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                  <mat-icon [svgIcon]="presence.justifie ? 'mat:check_circle' : 'mat:group_off'"
+                    class="icon-sm"></mat-icon>
+                </div>
+
+                <div class="min-w-0">
+                  <p class="m-0 body-2 font-medium">
+                    <span class="px-2 py-0.5 rounded-full caption font-medium"
+                      [ngClass]="statutClass(presence.statut)">
+                      {{ presence.statut_libelle }}
+                      <span *ngIf="presence.minutes_retard"> · {{ presence.minutes_retard }} min</span>
+                    </span>
+                    <span class="ml-2">{{ matiere(presence) }}</span>
+                  </p>
+                  <p class="m-0 caption text-hint">
+                    {{ presence.seance?.date_seance | date: 'EEEE dd/MM/yyyy' }}
+                    &bull; {{ creneau(presence) }}
+                    &bull; {{ presence.seance?.duree_minutes }} min
+                  </p>
+                  <p class="m-0 caption" *ngIf="presence.motif">
+                    <span class="text-hint">{{ presence.motif }}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 flex-none">
+                <span *ngIf="presence.justifie" class="caption text-green-700 font-medium">
+                  Justifiée
+                </span>
+
+                <a *ngIf="presence.justificatif_url" [href]="presence.justificatif_url"
+                  target="_blank" rel="noopener" mat-icon-button matTooltip="Voir le justificatif">
+                  <mat-icon svgIcon="mat:description" class="icon-sm text-primary-600"></mat-icon>
+                </a>
+
+                <button *ngIf="peutJustifier" mat-icon-button type="button"
+                  [matTooltip]="presence.justifie ? 'Modifier la justification' : 'Justifier'"
+                  (click)="justifier(presence)">
+                  <mat-icon svgIcon="mat:check_circle" class="icon-sm"></mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Aucune anomalie : c'est une bonne nouvelle, on le dit ainsi -->
+          <div *ngIf="presences.length === 0"
+            class="flex flex-col items-center justify-center gap-4 p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-green-100 text-green-700 flex items-center justify-center">
+              <mat-icon svgIcon="mat:done_all"></mat-icon>
+            </div>
+            <div>
+              <p class="m-0 body-1 font-medium">Aucune absence ni retard</p>
+              <p class="m-0 caption text-hint">
+                Cet élève est assidu sur la période sélectionnée.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </ng-container>
+    </div>
+  </div>
+</div>

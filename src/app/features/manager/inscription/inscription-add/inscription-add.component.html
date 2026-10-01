@@ -1,0 +1,225 @@
+<div class="w-full h-full flex flex-col">
+
+  <!-- Header -->
+  <div class="px-6 pt-6 pb-10 bg-primary-600/10 flex-none">
+    <div class="flex items-center container px-0 gap-4">
+      <button mat-icon-button type="button" (click)="retour()" matTooltip="Retour aux inscriptions" class="flex-none">
+        <mat-icon svgIcon="mat:arrow_back"></mat-icon>
+      </button>
+
+      <h2 class="display-1 font-bold m-0 flex items-center w-full">
+        <span @scaleIn
+          class="w-12 h-12 rounded-full text-primary-600 ltr:mr-4 rtl:ml-4 bg-primary-600/10 hidden sm:flex items-center justify-center">
+          <mat-icon svgIcon="mat:assignment"></mat-icon>
+        </span>
+        <span @fadeInRight class="block">{{ eleveImpose ? 'Inscrire un élève' : 'Réinscrire un élève' }}</span>
+      </h2>
+    </div>
+  </div>
+
+  <div class="container-fluid px-6">
+    <div class="mt-6 flex flex-col gap-6">
+
+      <div *ngIf="chargement" class="card flex flex-col items-center justify-center gap-4 p-12">
+        <mat-spinner diameter="48"></mat-spinner>
+        <p class="m-0 text-hint">Chargement des élèves et des classes...</p>
+      </div>
+
+      <div class="card p-6" *ngIf="!chargement">
+        <form [formGroup]="form" class="flex flex-col gap-4">
+
+          <!-- Rappel : le type est deduit par le backend -->
+          <div class="flex items-start gap-3 px-4 py-3 rounded bg-primary-600/5 border border-primary-600/20">
+            <mat-icon svgIcon="mat:info" class="icon-sm text-primary-600 flex-none mt-0.5"></mat-icon>
+            <p class="m-0 caption text-hint">
+              L'année scolaire, le montant et le type d'inscription
+              (nouvelle ou réinscription) sont déterminés automatiquement à partir
+              de la classe choisie et de l'historique de l'élève.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!--
+              Eleve impose (arrivee depuis la fiche, la liste, ou la creation
+              qui enchaine ici) : on affiche son identite plutot qu'une liste
+              deroulante. Le choix n'a lieu d'etre qu'en reinscription, ou l'on
+              part de la liste des inscriptions sans eleve en tete.
+            -->
+            <div *ngIf="eleveImpose"
+              class="w-full flex items-center gap-3 px-4 py-3 rounded border bg-gray-50">
+              <mat-icon svgIcon="mat:person" class="icon-sm text-hint flex-none"></mat-icon>
+              <div class="flex-auto min-w-0">
+                <p class="m-0 caption text-hint">Élève</p>
+                <p class="m-0 body-2 font-medium truncate" *ngIf="eleveSelectionne; else chargementIdentite">
+                  {{ eleveSelectionne.nom_complet }} — {{ eleveSelectionne.matricule }}
+                </p>
+                <ng-template #chargementIdentite>
+                  <p class="m-0 body-2 text-hint">Chargement…</p>
+                </ng-template>
+              </div>
+              <mat-icon svgIcon="mat:lock" class="icon-sm text-hint flex-none"
+                matTooltip="L'élève est déterminé par la fiche d'où vous venez"></mat-icon>
+            </div>
+
+            <mat-form-field appearance="outline" class="w-full" *ngIf="!eleveImpose">
+              <mat-label>Élève</mat-label>
+              <mat-icon matPrefix svgIcon="mat:person" class="mr-2 text-hint icon-sm"></mat-icon>
+              <!--
+                La liste n'est pas chargée d'avance : chaque frappe interroge
+                la base (nom, prénom, matricule, téléphone, tuteur). Un
+                établissement de plusieurs centaines d'élèves rendrait un
+                select classique impossible à parcourir.
+              -->
+              <mat-select formControlName="eleve_id" panelClass="eleve-select-panel">
+
+                <!-- Le champ de recherche vit dans le panneau du select.
+                     (keydown.space) empêche mat-select d'intercepter l'espace
+                     pour sa navigation au clavier : sans cela, impossible de
+                     taper un prénom composé. -->
+                <div class="px-3 py-2 border-b sticky top-0 bg-white dark:bg-gray-800 z-10">
+                  <div class="flex items-center gap-2">
+                    <mat-icon svgIcon="mat:search" class="text-hint icon-sm flex-none"></mat-icon>
+                    <input
+                      [formControl]="rechercheEleve"
+                      (keydown)="$event.stopPropagation()"
+                      (click)="$event.stopPropagation()"
+                      class="w-full bg-transparent border-0 outline-none py-1 text-sm"
+                      placeholder="Rechercher : nom, matricule, téléphone…"
+                      type="text" />
+                    <mat-spinner *ngIf="rechercheEnCours" diameter="16" class="flex-none"></mat-spinner>
+                  </div>
+                </div>
+
+                <mat-option *ngFor="let e of eleves" [value]="e.id">
+                  {{ e.nom_complet }} — {{ e.matricule }}
+                </mat-option>
+
+                <!-- Aucun résultat : distinguer « rien ne correspond » d'un
+                     simple chargement en cours. -->
+                <div
+                  *ngIf="!eleves.length && !rechercheEnCours"
+                  class="px-4 py-3 caption text-hint">
+                  Aucun élève ne correspond à cette recherche.
+                </div>
+
+                <!-- Résultats tronqués : sans ce message, un élève absent de
+                     la liste passerait pour inexistant. -->
+                <div
+                  *ngIf="resultatsTronques"
+                  class="px-4 py-2 caption text-hint border-t">
+                  Seuls les premiers résultats sont affichés — précisez la recherche.
+                </div>
+              </mat-select>
+              <mat-hint>Réinscription : recherchez l'élève déjà connu de l'école</mat-hint>
+              <mat-error *ngIf="form.get('eleve_id')?.hasError('required')">
+                L'élève est obligatoire
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Classe</mat-label>
+              <mat-icon matPrefix svgIcon="mat:school" class="mr-2 text-hint icon-sm"></mat-icon>
+              <mat-select formControlName="classe_id">
+                <mat-option *ngFor="let c of classes" [value]="c.id">
+                  {{ c.nom }}<span *ngIf="c.niveau"> — {{ c.niveau.nom }}</span>
+                </mat-option>
+              </mat-select>
+              <mat-hint *ngIf="classes.length">Année scolaire en cours uniquement</mat-hint>
+              <mat-error *ngIf="form.get('classe_id')?.hasError('required')">
+                La classe est obligatoire
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="w-full sm:w-1/2">
+            <mat-label>Date d'inscription</mat-label>
+            <input matInput [matDatepicker]="picker" formControlName="date_inscription" />
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+            <mat-hint>Par défaut, aujourd'hui</mat-hint>
+          </mat-form-field>
+
+          <!-- Chargement de l'historique de l'eleve -->
+          <div *ngIf="chargementEleve" class="flex items-center gap-3 px-4 py-3">
+            <mat-spinner diameter="20"></mat-spinner>
+            <p class="m-0 caption text-hint">Vérification de l'historique de l'élève...</p>
+          </div>
+
+          <!-- Deja inscrit cette annee : le backend refuserait -->
+          <div *ngIf="!chargementEleve && dejaInscritCetteAnnee"
+            class="flex items-start gap-3 px-4 py-3 rounded bg-red-50 border border-red-200">
+            <mat-icon svgIcon="mat:warning" class="icon-sm text-red-600 flex-none mt-0.5"></mat-icon>
+            <div>
+              <p class="m-0 body-2 font-medium text-red-800">
+                Cet élève est déjà inscrit pour l'année scolaire en cours.
+              </p>
+              <p class="m-0 caption text-red-700" *ngIf="inscriptionCetteAnnee as insc">
+                Inscription {{ insc.numero_inscription }}
+                <ng-container *ngIf="insc.classe"> — classe {{ insc.classe.nom }}</ng-container>.
+                Pour la modifier, passez par la liste des inscriptions.
+              </p>
+            </div>
+          </div>
+
+          <!-- Recapitulatif avant envoi -->
+          <div *ngIf="!chargementEleve && !dejaInscritCetteAnnee && eleveSelectionne && classeSelectionnee"
+            class="flex flex-col gap-3 px-4 py-4 rounded bg-gray-50 border">
+            <h4 class="m-0 body-1 font-semibold">Récapitulatif</h4>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <p class="m-0 caption text-hint">Type</p>
+                <p class="m-0 body-2 font-medium" [ngClass]="estReinscription ? 'text-blue-700' : 'text-green-700'">
+                  {{ typeLabel }}
+                </p>
+              </div>
+              <div>
+                <p class="m-0 caption text-hint">Classe</p>
+                <p class="m-0 body-2">{{ classeSelectionnee.nom }}</p>
+              </div>
+              <div>
+                <p class="m-0 caption text-hint">Montant d'inscription</p>
+                <p class="m-0 body-2 font-medium" *ngIf="montantInscription != null; else pasDeMontant">
+                  {{ montantInscription | number }} FCFA
+                </p>
+                <ng-template #pasDeMontant>
+                  <p class="m-0 body-2 text-hint">—</p>
+                </ng-template>
+              </div>
+            </div>
+
+            <p class="m-0 caption text-hint" *ngIf="estReinscription">
+              Cet élève a déjà été inscrit lors d'une année scolaire précédente.
+            </p>
+
+            <p class="m-0 caption text-red-600" *ngIf="baremeManquant">
+              Aucun barème de frais n'est défini pour ce niveau sur l'année
+              scolaire de cette classe. Renseignez-le dans « Frais scolaire »
+              avant d'inscrire l'élève.
+            </p>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-2">
+            <button mat-stroked-button type="button" (click)="retour()" [disabled]="loading">
+              Annuler
+            </button>
+
+            <button mat-raised-button color="primary" type="button" (click)="onSubmit()" [disabled]="!canSubmit">
+              <ng-container *ngIf="!loading">
+                <mat-icon svgIcon="mat:save" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+                Enregistrer l'inscription
+              </ng-container>
+              <ng-container *ngIf="loading">
+                <mat-spinner diameter="16" class="ltr:mr-2 rtl:ml-2"></mat-spinner>
+                Enregistrement...
+              </ng-container>
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+</div>

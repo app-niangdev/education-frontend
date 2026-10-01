@@ -1,0 +1,146 @@
+<!--
+  Liste des fils + fil ouvert, sur le gabarit « chat » du thème Vex.
+
+  Toutes les teintes d'accentuation passent par `primary-*` : ces classes lisent
+  les variables CSS que ThemeColorService réécrit sur <body>, si bien qu'un
+  changement de couleur dans le paramétrage se répercute ici sans rebuild. Ne
+  jamais y substituer une couleur en dur.
+-->
+<mat-drawer-container class="overflow-hidden h-full w-full">
+  <mat-drawer (openedChange)="drawerChange($event)" [mode]="(mobileQuery$ | async) ? 'over' : 'side'"
+    [opened]="!!(drawerOpen$ | async)" class="drawer" position="start">
+    <div class="h-full flex flex-col">
+      <div class="flex-none py-3 sm:py-4 bg-gray-50 dark:bg-gray-900 space-y-3 sm:space-y-4 border-b">
+        <div class="flex items-center gap-2 mx-3 sm:mx-4">
+          <div class="flex-1 text-xl sm:text-2xl font-semibold truncate">
+            {{ estTuteur ? 'Discussions' : 'Messagerie' }}
+          </div>
+
+          <button (click)="nouvelleConversation()" class="flex-none" color="primary" mat-raised-button type="button">
+            <mat-icon svgIcon="mat:add_circle"></mat-icon>
+            <span class="hidden sm:inline">{{ estTuteur ? 'Nouvelle demande' : 'Nouveau fil' }}</span>
+          </button>
+        </div>
+
+        <div class="flex px-3 sm:px-4">
+          <mat-form-field appearance="outline" class="vex-mat-dense-xs flex-1 bg-foreground" subscriptSizing="dynamic">
+            <mat-icon class="icon-sm" matIconPrefix svgIcon="mat:search"></mat-icon>
+            <input [formControl]="recherche" matInput placeholder="Rechercher une demande..." type="text" />
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="flex-1 min-h-0" data-simplebar>
+        <div class="pt-2">
+          <!-- Deux onglets seulement : « à traiter » est ce qu'on ouvre 9 fois
+               sur 10, « tous » sert à retrouver un dossier clos.
+               Réservés aux agents : « à traiter » décrit une corbeille de
+               travail, notion qui n'a pas de sens pour une famille, qui voit
+               simplement ses propres échanges. -->
+          <div *ngIf="!estTuteur" class="flex items-center px-4 pb-2 gap-2">
+            <button (click)="changerFiltre('en_cours')" [ngClass]="
+                filtreActif() === 'en_cours'
+                  ? 'text-primary-600 bg-primary-100 dark:text-primary-200 dark:bg-primary-700/20 font-semibold'
+                  : 'text-gray-400 font-medium hover:bg-gray-100 dark:hover:bg-gray-800'
+              " class="text-sm px-4 py-2 rounded-lg transition flex-1 text-center relative" matRipple type="button">
+              À traiter
+            </button>
+            <button (click)="changerFiltre('tous')" [ngClass]="
+                filtreActif() === 'tous'
+                  ? 'text-primary-600 bg-primary-100 dark:text-primary-200 dark:bg-primary-700/20 font-semibold'
+                  : 'text-gray-400 font-medium hover:bg-gray-100 dark:hover:bg-gray-800'
+              " class="text-sm px-4 py-2 rounded-lg transition flex-1 text-center relative" matRipple type="button">
+              Tous
+            </button>
+          </div>
+
+          <div *ngIf="chargement()" class="px-6 py-8 text-center text-gray-500 text-sm">
+            Chargement...
+          </div>
+
+          <div *ngIf="!chargement() && conversations().length === 0" class="px-6 py-10 text-center">
+            <mat-icon class="text-gray-300 dark:text-gray-600" svgIcon="mat:forum"></mat-icon>
+            <div class="mt-2 text-sm text-gray-500">
+              {{
+              estTuteur
+              ? 'Aucun échange pour le moment. Écrivez à la scolarité ou à la trésorerie.'
+              : filtreActif() === 'en_cours'
+              ? 'Aucune demande en cours.'
+              : 'Aucune demande.'
+              }}
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <ng-container *ngFor="let conversation of conversations(); trackBy: trackById">
+              <a #rla="routerLinkActive" [ngClass]="{
+                  'text-primary-600 bg-primary-50 dark:text-primary-200 dark:bg-primary-700/20':
+                    rla.isActive
+                }" [routerLink]="['./', conversation.id]"
+                class="relative text-sm mx-2 px-3 py-2 rounded hover:bg-primary-100 hover:dark:bg-primary-700/10 flex items-center gap-3 transition ease-out"
+                matRipple routerLinkActive>
+                <div *ngIf="rla.isActive" class="w-1 bg-primary-600 absolute left-0 top-0 bottom-0 rounded-full my-1">
+                </div>
+
+                <!-- Pas de photo : ni les tuteurs ni les services n'en ont.
+                     Les initiales tiennent lieu d'avatar. -->
+                <div
+                  class="h-10 w-10 rounded-full flex-none select-none flex items-center justify-center bg-primary-100 text-primary-700 dark:bg-primary-700/30 dark:text-primary-200 font-semibold text-xs">
+                  {{ initiales(conversation) }}
+                </div>
+
+                <div class="flex-1 select-none truncate">
+                  <div class="truncate flex items-center gap-2 mb-0.5">
+                    <div class="font-medium flex-1 truncate">
+                      {{ interlocuteur(conversation) }}
+                    </div>
+                    <div class="flex-none text-xs text-gray-500">
+                      {{
+                      conversation.derniere_activite_at
+                      | date: 'dd/MM HH:mm'
+                      }}
+                    </div>
+                  </div>
+
+                  <div class="truncate font-medium text-xs mb-0.5">
+                    {{ conversation.sujet }}
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <div class="text-xs text-gray-500 truncate flex-1">
+                      {{ apercu(conversation) }}
+                    </div>
+
+                    <!-- Le compteur n'est calculé que pour les agents : le
+                         backend ne l'attache pas aux fils d'un tuteur. -->
+                    <div *ngIf="(conversation.non_lus_count ?? 0) > 0"
+                      class="flex-none bg-primary-600 text-white rounded-full text-[10px] font-semibold min-w-[18px] h-[18px] px-1 flex items-center justify-center">
+                      {{ conversation.non_lus_count }}
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-1 mt-1">
+                    <span [ngClass]="classesStatut[conversation.statut]"
+                      class="text-[10px] font-medium px-1.5 py-0.5 rounded">
+                      {{ libellesStatut[conversation.statut] }}
+                    </span>
+
+                    <!-- Le guichet n'a d'intérêt que pour un agent qui en
+                         traite plusieurs ; côté tuteur il est déjà le titre. -->
+                    <span *ngIf="!estTuteur" class="text-[10px] text-gray-500 truncate">
+                      {{ libellesService[conversation.service] }}
+                    </span>
+                  </div>
+                </div>
+              </a>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+    </div>
+  </mat-drawer>
+
+  <mat-drawer-content class="relative">
+    <router-outlet></router-outlet>
+  </mat-drawer-content>
+</mat-drawer-container>

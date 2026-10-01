@@ -1,0 +1,100 @@
+<vex-liste-page
+  icon="mat:account_circle"
+  titre="Trésoriers"
+  titreCarte="Liste des trésoriers"
+  [sousTitre]="total + ' trésorier(s)'"
+  [loading]="loading"
+  [vide]="tresoriers.length === 0"
+  [aDesFiltres]="true"
+  [meta]="meta"
+  [pageSizeOptions]="pageSizeOptions"
+  (pageChange)="onPageChange($event)">
+
+  <!-- Action en-tête -->
+  <button entete color="primary" mat-raised-button type="button" (click)="openAddDialog()"
+    class="hidden sm:inline-flex">
+    <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
+    Nouveau trésorier
+  </button>
+
+  <!-- Filtres -->
+  <mat-form-field filtres appearance="outline" class="w-full sm:w-80" subscriptSizing="dynamic">
+    <mat-label>Rechercher</mat-label>
+    <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+    <input matInput [formControl]="searchCtrl" placeholder="Nom, matricule, banque, téléphone…" />
+  </mat-form-field>
+
+  <!-- Lignes -->
+  <vex-liste-ligne *ngFor="let t of tresoriers" ligneClass="cursor-pointer" (click)="editTresorier(t)">
+    <div class="w-10 h-10 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+      <mat-icon svgIcon="mat:account_circle" class="icon-sm"></mat-icon>
+    </div>
+    <div class="min-w-0">
+      <p class="m-0 body-1 font-semibold truncate">{{ fullName(t) }}</p>
+      <p class="m-0 caption text-hint">
+        <span class="font-medium text-primary-600">{{ t.matricule ?? '—' }}</span>
+        <ng-container *ngIf="t.user?.phone_one"> &bull; {{ t.user?.phone_one }}</ng-container>
+        <ng-container *ngIf="t.user?.email"> &bull; {{ t.user?.email }}</ng-container>
+      </p>
+      <p class="m-0 caption text-hint" *ngIf="t.banque || t.numero_compte_bancaire">
+        <ng-container *ngIf="t.banque">{{ t.banque }}</ng-container>
+        <ng-container *ngIf="t.banque && t.numero_compte_bancaire"> &bull; </ng-container>
+        <ng-container *ngIf="t.numero_compte_bancaire">N° {{ t.numero_compte_bancaire }}</ng-container>
+      </p>
+    </div>
+
+    <!-- Accès caisse + badge contrat à droite -->
+    <span badge class="rounded-full px-2 py-1 text-xs font-medium"
+      [ngClass]="[accesCaisseBadge(t.acces_caisse).bgClass, accesCaisseBadge(t.acces_caisse).textClass]">
+      {{ accesCaisseBadge(t.acces_caisse).text }}
+    </span>
+    <span badge class="rounded-full px-2 py-1 text-xs font-medium"
+      [ngClass]="[contratBadgeFor(t.type_contrat).bgClass, contratBadgeFor(t.type_contrat).textClass]">
+      {{ contratBadgeFor(t.type_contrat).text }}
+    </span>
+
+    <button actions mat-icon-button type="button"
+      (click)="$event.stopPropagation()"
+      [matMenuTriggerFor]="actionsMenu" [matMenuTriggerData]="{ tresorier: t }">
+      <mat-icon svgIcon="mat:more_vert"></mat-icon>
+    </button>
+  </vex-liste-ligne>
+
+  <!-- État vide -->
+  <div etatVide class="flex flex-col items-center justify-center gap-4 p-12">
+    <div class="w-16 h-16 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center">
+      <mat-icon svgIcon="mat:account_circle" class="icon-lg"></mat-icon>
+    </div>
+    <ng-container *ngIf="searchCtrl.value; else aucun">
+      <h3 class="title m-0">Aucun résultat</h3>
+      <p class="m-0 caption text-hint text-center">Aucun trésorier ne correspond à votre recherche.</p>
+    </ng-container>
+    <ng-template #aucun>
+      <h3 class="title m-0">Aucun trésorier</h3>
+      <p class="m-0 caption text-hint text-center">Ajoutez le premier trésorier de l'établissement.</p>
+      <button color="primary" mat-raised-button type="button" (click)="openAddDialog()">
+        <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+        Nouveau trésorier
+      </button>
+    </ng-template>
+  </div>
+</vex-liste-page>
+
+<!-- Menu actions -->
+<mat-menu #actionsMenu="matMenu" xPosition="before" yPosition="below">
+  <ng-template matMenuContent let-tresorier="tresorier">
+    <button mat-menu-item (click)="editTresorier(tresorier)">
+      <mat-icon svgIcon="mat:edit" class="mr-2"></mat-icon>
+      <span>Modifier</span>
+    </button>
+    <button mat-menu-item (click)="reinitialiserAcces(tresorier)"
+      [disabled]="reinitialisationEnCours === tresorier.id">
+      <mat-icon svgIcon="mat:lock" class="mr-2"></mat-icon>
+      <span>Réinitialiser les accès</span>
+    </button>
+    <button mat-menu-item (click)="deleteTresorier(tresorier)" class="text-red-600">
+      <mat-icon svgIcon="mat:delete" class="mr-2"></mat-icon>
+      <span>Supprimer</span>
+    </button>
+  </ng-template>
+</mat-menu>
