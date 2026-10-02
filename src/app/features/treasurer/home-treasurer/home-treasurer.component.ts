@@ -1,13 +1,16 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Router } from '@angular/router';
 import { fadeInRight400ms } from '@vex/animations/fade-in-right.animation';
 import { scaleIn400ms } from '@vex/animations/scale-in.animation';
 import { stagger40ms } from '@vex/animations/stagger.animation';
 import { StatistiqueService } from 'src/app/auth/services/statistique.service';
 import { DashboardTresorier } from 'src/app/interfaces/Statistique';
+import { RelancesDialogComponent } from '../mensualites/relances-dialog/relances-dialog.component';
 
 interface ModeBar {
   mode: string;
@@ -40,6 +43,7 @@ const MODE_VARS: Record<string, string> = {
   standalone: true,
   imports: [
     CommonModule,
+    MatDialogModule,
     MatIconModule,
     MatTooltipModule,
     MatProgressSpinnerModule
@@ -47,11 +51,17 @@ const MODE_VARS: Record<string, string> = {
 })
 export class HomeTreasurerComponent implements OnInit {
   private readonly statService = inject(StatistiqueService);
+  private readonly router = inject(Router);
+  private readonly dialog = inject(MatDialog);
 
   readonly stats = signal<DashboardTresorier | null>(null);
   loading = false;
 
   ngOnInit(): void {
+    this.charger();
+  }
+
+  private charger(): void {
     this.loading = true;
     this.statService.getDashboardTresorier().subscribe({
       next: (data) => {
@@ -60,6 +70,42 @@ export class HomeTreasurerComponent implements OnInit {
       },
       error: () => (this.loading = false)
     });
+  }
+
+  // ─── Effectifs ───────────────────────────────────────────────────────────────
+
+  /** Les inscriptions en attente sont la file de travail de la caisse. */
+  voirEncaissements(): void {
+    this.router.navigate(['/index/treasurer/encaissements']);
+  }
+
+  /**
+   * La tuile « en retard » mène droit à l'action : relancer. Les chiffres
+   * sont rechargés à la fermeture — un paiement a pu être saisi entre-temps.
+   */
+  relancerImpayes(): void {
+    this.dialog
+      .open(RelancesDialogComponent, {
+        width: '720px',
+        maxHeight: '90vh',
+        disableClose: true
+      })
+      .afterClosed()
+      .subscribe(() => this.charger());
+  }
+
+  /** Ligne « Total » du tableau par niveau. */
+  get totalNiveaux(): { eleves: number; en_retard: number; du: number; encaisse: number; reste: number } {
+    return (this.stats()?.par_niveau ?? []).reduce(
+      (t, n) => ({
+        eleves: t.eleves + n.eleves,
+        en_retard: t.en_retard + n.en_retard,
+        du: t.du + n.du,
+        encaisse: t.encaisse + n.encaisse,
+        reste: t.reste + n.reste
+      }),
+      { eleves: 0, en_retard: 0, du: 0, encaisse: 0, reste: 0 }
+    );
   }
 
   // ─── Jauge de recouvrement ───────────────────────────────────────────────────

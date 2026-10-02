@@ -77,6 +77,32 @@ export interface DashboardTresorier {
     inscriptions: number;
     mensualites: number;
   };
+
+  /**
+   * Les élèves derrière les montants. « En retard » suit la définition des
+   * relances : reste des frais d'inscription, ou mensualité échue non soldée.
+   */
+  effectifs: {
+    inscrits: number;
+    en_attente: number;
+    a_jour: number;
+    en_retard: number;
+  };
+
+  /** Recouvrement par niveau : le tarif étant fixé par niveau. */
+  par_niveau: RecouvrementNiveau[];
+}
+
+export interface RecouvrementNiveau {
+  niveau: string;
+  code: string | null;
+  /** Inscriptions non annulées (validées et en attente). */
+  eleves: number;
+  en_retard: number;
+  du: number;
+  encaisse: number;
+  reste: number;
+  taux: number;
 }
 
 export interface EncaissementPeriode {

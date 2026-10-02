@@ -31,8 +31,53 @@
 
   <div *ngIf="!loading && stats() as s" class="container-fluid px-6 pb-8">
 
+    <!-- Effectifs : les élèves derrière les montants -->
+    <div class="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="card p-4 flex items-center gap-3" @scaleIn>
+        <div class="w-11 h-11 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
+          <mat-icon svgIcon="mat:person" class="icon-sm"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <p class="m-0 display-1 font-bold leading-none">{{ s.effectifs.inscrits }}</p>
+          <p class="m-0 caption text-hint truncate">Élèves inscrits</p>
+        </div>
+      </div>
+
+      <button type="button" class="card p-4 flex items-center gap-3 text-left hover:bg-gray-50 transition-colors"
+        matTooltip="Ouvrir les encaissements" (click)="voirEncaissements()" @scaleIn>
+        <div class="w-11 h-11 rounded-full bg-amber-100 text-amber-700 flex-none flex items-center justify-center">
+          <mat-icon svgIcon="mat:hourglass_empty" class="icon-sm"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <p class="m-0 display-1 font-bold leading-none">{{ s.effectifs.en_attente }}</p>
+          <p class="m-0 caption text-hint truncate">En attente d'encaissement</p>
+        </div>
+      </button>
+
+      <div class="card p-4 flex items-center gap-3" @scaleIn>
+        <div class="w-11 h-11 rounded-full bg-green-100 text-green-700 flex-none flex items-center justify-center">
+          <mat-icon svgIcon="mat:check_circle" class="icon-sm"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <p class="m-0 display-1 font-bold leading-none">{{ s.effectifs.a_jour }}</p>
+          <p class="m-0 caption text-hint truncate">Élèves à jour</p>
+        </div>
+      </div>
+
+      <button type="button" class="card p-4 flex items-center gap-3 text-left hover:bg-gray-50 transition-colors"
+        matTooltip="Relancer les familles en retard" (click)="relancerImpayes()" @scaleIn>
+        <div class="w-11 h-11 rounded-full bg-red-100 text-red-700 flex-none flex items-center justify-center">
+          <mat-icon svgIcon="mat:warning" class="icon-sm"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <p class="m-0 display-1 font-bold leading-none">{{ s.effectifs.en_retard }}</p>
+          <p class="m-0 caption text-hint truncate">Élèves en retard</p>
+        </div>
+      </button>
+    </div>
+
     <!-- KPI d'encaissement -->
-    <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div class="card p-5 flex items-center gap-4" @scaleIn>
         <div class="w-12 h-12 rounded-full bg-primary-600/10 text-primary-600 flex-none flex items-center justify-center">
           <mat-icon svgIcon="mat:access_time"></mat-icon>
@@ -168,6 +213,65 @@
             <p class="m-0 caption text-hint">Mensualités non soldées</p>
           </div>
         </div>
+      </div>
+
+      <!-- Recouvrement par niveau : le tarif étant fixé par niveau, c'est là
+           que se lit où se concentrent les impayés. -->
+      <div class="card p-6 lg:col-span-2">
+        <h3 class="title m-0 mb-1">Recouvrement par niveau</h3>
+        <p class="caption text-hint m-0 mb-4">
+          Inscriptions non annulées de l'année — frais d'inscription et mensualités
+        </p>
+
+        <div *ngIf="s.par_niveau.length > 0; else aucunNiveau" class="overflow-x-auto">
+          <table class="w-full body-2">
+            <thead>
+              <tr class="caption text-hint border-b">
+                <th class="py-2 pr-4 text-left font-medium">Niveau</th>
+                <th class="py-2 px-4 text-right font-medium">Élèves</th>
+                <th class="py-2 px-4 text-right font-medium">En retard</th>
+                <th class="py-2 px-4 text-right font-medium">Dû</th>
+                <th class="py-2 px-4 text-right font-medium">Encaissé</th>
+                <th class="py-2 px-4 text-right font-medium">Reste</th>
+                <th class="py-2 pl-4 text-left font-medium w-48">Recouvrement</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              <tr *ngFor="let n of s.par_niveau">
+                <td class="py-2.5 pr-4 font-medium whitespace-nowrap">{{ n.niveau }}</td>
+                <td class="py-2.5 px-4 text-right">{{ n.eleves }}</td>
+                <td class="py-2.5 px-4 text-right" [ngClass]="n.en_retard > 0 ? 'text-red-700 font-medium' : 'text-hint'">
+                  {{ n.en_retard }}
+                </td>
+                <td class="py-2.5 px-4 text-right whitespace-nowrap">{{ formatMontant(n.du) }}</td>
+                <td class="py-2.5 px-4 text-right whitespace-nowrap">{{ formatMontant(n.encaisse) }}</td>
+                <td class="py-2.5 px-4 text-right whitespace-nowrap font-medium text-primary-600">{{ formatMontant(n.reste) }}</td>
+                <td class="py-2.5 pl-4">
+                  <div class="flex items-center gap-2">
+                    <div class="h-2 flex-auto rounded-full bg-gray-200 overflow-hidden">
+                      <div class="h-full rounded-full" style="background: var(--viz-primary)" [style.width.%]="n.taux"></div>
+                    </div>
+                    <span class="caption text-hint w-12 text-right">{{ n.taux }}%</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot *ngIf="s.par_niveau.length > 1">
+              <tr class="border-t font-semibold">
+                <td class="py-2.5 pr-4">Total</td>
+                <td class="py-2.5 px-4 text-right">{{ totalNiveaux.eleves }}</td>
+                <td class="py-2.5 px-4 text-right">{{ totalNiveaux.en_retard }}</td>
+                <td class="py-2.5 px-4 text-right whitespace-nowrap">{{ formatMontant(totalNiveaux.du) }}</td>
+                <td class="py-2.5 px-4 text-right whitespace-nowrap">{{ formatMontant(totalNiveaux.encaisse) }}</td>
+                <td class="py-2.5 px-4 text-right whitespace-nowrap">{{ formatMontant(totalNiveaux.reste) }}</td>
+                <td class="py-2.5 pl-4 caption text-hint font-normal">Montants en FCFA</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <ng-template #aucunNiveau>
+          <p class="caption text-hint m-0">Aucune inscription pour cette année.</p>
+        </ng-template>
       </div>
 
     </div>
