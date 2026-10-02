@@ -77,6 +77,12 @@ export class PaiementsComponent implements OnInit {
   /** Id de la facture dont le justificatif est en cours de génération. */
   downloadingFactureId: number | null = null;
 
+  /**
+   * Le justificatif en cours de renvoi sur WhatsApp. La clef porte l'onglet :
+   * un paiement et une facture peuvent partager le même identifiant.
+   */
+  envoiWhatsapp: string | null = null;
+
   ngOnInit(): void {
     this.loadData();
 
@@ -193,6 +199,47 @@ export class PaiementsComponent implements OnInit {
 
   modeLabel(p: PaiementInscription): string {
     return MODES_PAIEMENT.find((m) => m.value === p.mode_paiement)?.label ?? p.mode_paiement;
+  }
+
+  // ─── Renvoi WhatsApp ─────────────────────────────────────────────────────────
+
+  renvoyerRecuWhatsapp(p: PaiementInscription): void {
+    this.renvoyerWhatsapp(
+      `inscription-${p.id}`,
+      this.financeService.envoyerRecuInscriptionWhatsapp(p.id)
+    );
+  }
+
+  renvoyerFactureWhatsapp(f: FactureMensualite): void {
+    this.renvoyerWhatsapp(
+      `facture-${f.id}`,
+      this.financeService.envoyerFactureWhatsapp(f.id)
+    );
+  }
+
+  /**
+   * Le serveur dit pourquoi l'envoi est impossible (WhatsApp non configuré,
+   * tuteur sans numéro valide) : son message est affiché tel quel.
+   */
+  private renvoyerWhatsapp(
+    cle: string,
+    requete: Observable<{ message: string }>
+  ): void {
+    if (this.envoiWhatsapp !== null) return;
+    this.envoiWhatsapp = cle;
+
+    requete.subscribe({
+      next: (res) => {
+        this.envoiWhatsapp = null;
+        this.notificationService.success(res.message);
+      },
+      error: (err) => {
+        this.envoiWhatsapp = null;
+        this.notificationService.error(
+          err?.error?.message ?? "L'envoi WhatsApp a échoué."
+        );
+      }
+    });
   }
 
   // ─── Justificatif ────────────────────────────────────────────────────────────

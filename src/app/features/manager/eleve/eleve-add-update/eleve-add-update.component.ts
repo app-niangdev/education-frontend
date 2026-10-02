@@ -211,6 +211,14 @@ export class EleveAddUpdateComponent implements OnInit {
       .get('lien_parente')!
       .valueChanges.subscribe((lien) => this.onLienParenteChange(lien));
 
+    // Le telephone du tuteur suit celui du parent designe : corrige a l'etape
+    // « Parents », il ne doit pas laisser l'ancien numero sur la fiche tuteur.
+    for (const champ of ['telephone_pere', 'telephone_mere']) {
+      this.parentsForm
+        .get(champ)!
+        .valueChanges.subscribe(() => this.reprendreTelephoneParent());
+    }
+
     // L'annuaire des tuteurs. Le debounce evite un appel par touche frappee ;
     // switchMap abandonne la reponse d'une recherche devenue obsolete, sans
     // quoi une requete lente pourrait ecraser le resultat d'une plus recente.
@@ -334,7 +342,29 @@ export class EleveAddUpdateComponent implements OnInit {
     if (this.chargementEnCours) return;
     if (lien === 'PERE' || lien === 'MERE') {
       this.remplirTuteurDepuisParent(lien);
+      this.reprendreTelephoneParent();
     }
+  }
+
+  /**
+   * Aligne le telephone du tuteur sur celui du parent designe, y compris
+   * quand ce dernier est vide : passer du pere a la mere ne doit pas laisser
+   * le numero du pere sur la fiche. L'agent le saisit alors a l'etape tuteur.
+   *
+   * Une fiche rattachee depuis l'annuaire garde son numero : elle est commune
+   * a la fratrie, et le bloc parent de cet eleve n'a pas a l'ecraser.
+   */
+  private reprendreTelephoneParent(): void {
+    if (this.chargementEnCours || this.tuteurRattache) return;
+
+    const lien = this.tuteurForm.get('lien_parente')!.value;
+    if (lien !== 'PERE' && lien !== 'MERE') return;
+
+    const telephone = this.parentsForm.get(
+      lien === 'PERE' ? 'telephone_pere' : 'telephone_mere'
+    )!.value;
+
+    this.tuteurForm.get('telephone_principal')!.setValue(telephone ?? '');
   }
 
   private remplirTuteurDepuisParent(lien: 'PERE' | 'MERE'): void {
@@ -377,6 +407,9 @@ export class EleveAddUpdateComponent implements OnInit {
    * recopie sur la fiche tuteur. Les exiger ici aussi rendrait le formulaire
    * invalide sans recours, les champs étant masqués.
    *
+   * Le téléphone fait exception : il reste affiché et obligatoire quel que
+   * soit le lien, prérempli avec celui du parent quand il est connu.
+   *
    * Le bloc parent correspondant devient obligatoire en retour — voir
    * `syncParentTuteur`.
    */
@@ -387,17 +420,15 @@ export class EleveAddUpdateComponent implements OnInit {
 
     this.setRequired(this.tuteurForm.get('nom')!, tiers, 255);
     this.setRequired(this.tuteurForm.get('prenom')!, tiers, 255);
-    this.setRequired(this.tuteurForm.get('telephone_principal')!, tiers, 20);
     this.setRequired(this.tuteurForm.get('adresse')!, tiers, 255);
 
     this.syncParentTuteur(lien);
   }
 
   /**
-   * Rend obligatoire le bloc du parent désigné comme tuteur : il devient la
-   * seule source de ses coordonnées, et une fiche tuteur sans nom ni téléphone
-   * serait inutilisable (ni recouvrement, ni messagerie — le téléphone est
-   * l'identifiant de connexion des familles).
+   * Rend obligatoire l'identité du parent désigné comme tuteur : le bloc
+   * parent devient la seule source de son nom, et une fiche tuteur anonyme
+   * serait inutilisable. Son téléphone, lui, est exigé à l'étape tuteur.
    */
   private syncParentTuteur(lien: string | null | undefined): void {
     const estPere = lien === 'PERE';
@@ -405,11 +436,9 @@ export class EleveAddUpdateComponent implements OnInit {
 
     this.setRequired(this.parentsForm.get('nom_pere')!, estPere, 255);
     this.setRequired(this.parentsForm.get('prenom_pere')!, estPere, 255);
-    this.setRequired(this.parentsForm.get('telephone_pere')!, estPere, 20);
 
     this.setRequired(this.parentsForm.get('nom_mere')!, estMere, 255);
     this.setRequired(this.parentsForm.get('prenom_mere')!, estMere, 255);
-    this.setRequired(this.parentsForm.get('telephone_mere')!, estMere, 20);
   }
 
   /**
@@ -650,6 +679,7 @@ export class EleveAddUpdateComponent implements OnInit {
         ...cleanupValues(identite),
         ...cleanupValues(this.medicalForm.value),
         ...cleanupValues(this.parentsForm.value),
+        ...this.telephoneParentDepuisTuteur(),
         date_naissance: toApiDate(identite.date_naissance)!,
         // Le backend l'efface de toute facon hors transfert, mais autant ne
         // pas envoyer une valeur qui n'a plus de sens.
@@ -711,6 +741,24 @@ export class EleveAddUpdateComponent implements OnInit {
         );
       }
     });
+  }
+
+  /**
+   * Le parent est le tuteur, mais son telephone n'a ete saisi qu'a l'etape
+   * tuteur : c'est le meme numero, on le reporte sur le bloc parent plutot
+   * que de laisser la fiche du pere ou de la mere sans contact.
+   */
+  private telephoneParentDepuisTuteur(): Record<string, string> {
+    if (!this.tuteurEstUnParent) return {};
+
+    const champ =
+      this.tuteurForm.get('lien_parente')!.value === 'PERE'
+        ? 'telephone_pere'
+        : 'telephone_mere';
+
+    return trimOrNull(this.parentsForm.get(champ)!.value)
+      ? {}
+      : { [champ]: this.tuteurForm.get('telephone_principal')!.value };
   }
 
   retour(): void {

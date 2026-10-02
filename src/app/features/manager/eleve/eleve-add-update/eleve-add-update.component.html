@@ -404,9 +404,22 @@
                 <mat-icon svgIcon="mat:check_circle" class="icon-sm text-primary-600 flex-none mt-0.5"></mat-icon>
                 <p class="m-0 caption text-hint">
                   Les coordonnées {{ parentTuteurLibelle }} saisies à l'étape
-                  « Parents » servent de fiche tuteur. Rien à ressaisir ici.
+                  « Parents » servent de fiche tuteur. Vérifiez seulement son
+                  téléphone ci-dessous.
                 </p>
               </div>
+
+              <!-- Le téléphone est exigé quel que soit le tuteur : pour un
+                   parent, il reprend le numéro saisi à l'étape « Parents ». -->
+              <mat-form-field *ngIf="tuteurEstUnParent" appearance="outline" class="w-full">
+                <mat-label>Téléphone du tuteur</mat-label>
+                <mat-icon matPrefix svgIcon="mat:phone" class="mr-2 text-hint icon-sm"></mat-icon>
+                <input matInput formControlName="telephone_principal" />
+                <mat-hint>Alertes SMS, et identifiant de connexion à l'espace tuteur</mat-hint>
+                <mat-error *ngIf="tuteurForm.get('telephone_principal')?.hasError('required')">
+                  Le téléphone du tuteur est obligatoire
+                </mat-error>
+              </mat-form-field>
 
               <ng-container *ngIf="!tuteurEstUnParent">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

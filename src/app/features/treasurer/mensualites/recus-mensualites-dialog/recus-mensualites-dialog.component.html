@@ -46,6 +46,16 @@
           </span>
 
           <button mat-icon-button type="button"
+            [disabled]="envoiWhatsappId() !== null"
+            matTooltip="Renvoyer au tuteur sur WhatsApp"
+            (click)="renvoyerWhatsapp(f)">
+            <mat-spinner *ngIf="envoiWhatsappId() === f.id; else iconeEnvoi" diameter="20"></mat-spinner>
+            <ng-template #iconeEnvoi>
+              <mat-icon svgIcon="mat:send" class="text-primary-600"></mat-icon>
+            </ng-template>
+          </button>
+
+          <button mat-icon-button type="button"
             [disabled]="downloadingId() !== null"
             matTooltip="Imprimer ce reçu"
             (click)="telecharger(f)">

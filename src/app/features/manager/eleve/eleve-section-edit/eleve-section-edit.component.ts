@@ -118,7 +118,10 @@ export class EleveSectionEditComponent implements OnInit {
     if (this.section === 'tuteur') {
       this.form
         .get('lien_parente')!
-        .valueChanges.subscribe((l) => this.syncNin(l));
+        .valueChanges.subscribe((l) => {
+          this.syncNin(l);
+          this.reprendreTelephoneParent(l);
+        });
       this.syncNin(this.data.eleve.tuteur?.lien_parente);
     }
   }
@@ -225,6 +228,9 @@ export class EleveSectionEditComponent implements OnInit {
    * invalide — les champs sont masqués, donc impossibles à remplir, et le
    * bouton « Enregistrer » restait grisé.
    *
+   * Le téléphone fait exception : il reste obligatoire quel que soit le
+   * lien, un tuteur sans numéro étant injoignable.
+   *
    * Le NIN suit la règle inverse : il ne devient obligatoire que pour un
    * tuteur tiers, dont il scelle les engagements financiers.
    */
@@ -236,8 +242,25 @@ export class EleveSectionEditComponent implements OnInit {
     // Exigés du seul tuteur tiers : pour un parent, le bloc père/mère fait foi.
     this.setRequired(this.form.get('nom')!, tiers, 255);
     this.setRequired(this.form.get('prenom')!, tiers, 255);
-    this.setRequired(this.form.get('telephone_principal')!, tiers, 20);
     this.setRequired(this.form.get('adresse')!, tiers, 255);
+  }
+
+  /**
+   * Le père ou la mère devient tuteur : son numéro, déjà connu de la fiche
+   * parents, est repris plutôt que redemandé. Sans numéro connu, le champ
+   * reste tel quel et l'agent le saisit.
+   */
+  private reprendreTelephoneParent(lien: string | null | undefined): void {
+    const telephone =
+      lien === 'PERE'
+        ? this.data.eleve.telephone_pere
+        : lien === 'MERE'
+          ? this.data.eleve.telephone_mere
+          : null;
+
+    if (telephone) {
+      this.form.get('telephone_principal')!.setValue(telephone);
+    }
   }
 
   /** Bascule `required` en conservant la contrainte de longueur du champ. */

@@ -70,6 +70,15 @@
         <span class="caption text-hint" *ngIf="paiement.numero_transaction">Réf. {{ paiement.numero_transaction }}</span>
       </span>
 
+      <!-- Renvoi au tuteur : l'envoi automatique suit déjà l'encaissement -->
+      <button actions mat-icon-button type="button" [disabled]="envoiWhatsapp !== null"
+        matTooltip="Renvoyer au tuteur sur WhatsApp" (click)="renvoyerRecuWhatsapp(paiement)">
+        <mat-spinner *ngIf="envoiWhatsapp === 'inscription-' + paiement.id; else iconeEnvoiRecu" diameter="20"></mat-spinner>
+        <ng-template #iconeEnvoiRecu>
+          <mat-icon svgIcon="mat:send" class="text-primary-600"></mat-icon>
+        </ng-template>
+      </button>
+
       <!-- Justificatif : reçu si soldé, décharge sinon -->
       <button actions mat-icon-button type="button" [disabled]="downloadingId !== null"
         [matTooltip]="'Imprimer : ' + libelleDocument(paiement)" (click)="telechargerRecu(paiement)">
@@ -109,6 +118,14 @@
         <span class="body-1 font-semibold text-green-700 whitespace-nowrap">{{ facture.montant_total | number }} FCFA</span>
         <span class="caption text-hint" *ngIf="facture.numero_transaction">Réf. {{ facture.numero_transaction }}</span>
       </span>
+
+      <button actions mat-icon-button type="button" [disabled]="envoiWhatsapp !== null"
+        matTooltip="Renvoyer au tuteur sur WhatsApp" (click)="renvoyerFactureWhatsapp(facture)">
+        <mat-spinner *ngIf="envoiWhatsapp === 'facture-' + facture.id; else iconeEnvoiFacture" diameter="20"></mat-spinner>
+        <ng-template #iconeEnvoiFacture>
+          <mat-icon svgIcon="mat:send" class="text-primary-600"></mat-icon>
+        </ng-template>
+      </button>
 
       <!-- Un seul justificatif pour toute la facture -->
       <button actions mat-icon-button type="button" [disabled]="downloadingFactureId !== null"

@@ -57,6 +57,9 @@ export class RecusMensualitesDialogComponent implements OnInit {
   readonly chargement = signal(true);
   readonly downloadingId = signal<number | null>(null);
 
+  /** Id de la facture en cours de renvoi sur WhatsApp. */
+  readonly envoiWhatsappId = signal<number | null>(null);
+
   ngOnInit(): void {
     this.charger();
   }
@@ -119,6 +122,29 @@ export class RecusMensualitesDialogComponent implements OnInit {
         this.downloadingId.set(null);
         this.notification.error(
           'Erreur lors de la génération du justificatif PDF'
+        );
+      }
+    });
+  }
+
+  /**
+   * Renvoie le justificatif au tuteur sur WhatsApp. Le serveur dit pourquoi
+   * l'envoi est impossible (WhatsApp non configuré, numéro invalide) : son
+   * message est affiché tel quel.
+   */
+  renvoyerWhatsapp(f: FactureMensualite): void {
+    if (this.envoiWhatsappId() !== null) return;
+    this.envoiWhatsappId.set(f.id);
+
+    this.financeService.envoyerFactureWhatsapp(f.id).subscribe({
+      next: (res) => {
+        this.envoiWhatsappId.set(null);
+        this.notification.success(res.message);
+      },
+      error: (err) => {
+        this.envoiWhatsappId.set(null);
+        this.notification.error(
+          err?.error?.message ?? "L'envoi WhatsApp a échoué."
         );
       }
     });

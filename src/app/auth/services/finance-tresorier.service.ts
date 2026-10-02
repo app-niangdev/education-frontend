@@ -143,6 +143,20 @@ export class FinanceTresorierService {
     );
   }
 
+  /**
+   * Renvoie au tuteur, sur WhatsApp, le justificatif d'un versement sur
+   * inscription. L'envoi automatique suit déjà chaque encaissement : ce renvoi
+   * sert quand il a échoué, ou que la famille réclame de nouveau son document.
+   */
+  envoyerRecuInscriptionWhatsapp(
+    paiementId: number
+  ): Observable<LaravelApiResponse<null>> {
+    return this.http.post<LaravelApiResponse<null>>(
+      `${this.baseUrl}/finance-tresorier/paiements/whatsapp/${paiementId}`,
+      {}
+    );
+  }
+
   // ─── Mensualités ────────────────────────────────────────────────────────────
 
   /**
@@ -307,6 +321,16 @@ export class FinanceTresorierService {
     return this.http.get(
       `${this.baseUrl}/finance-tresorier/mensualites/factures/pdf/${factureId}`,
       { responseType: 'blob' }
+    );
+  }
+
+  /** Renvoie au tuteur, sur WhatsApp, le justificatif d'une facture multi-mois. */
+  envoyerFactureWhatsapp(
+    factureId: number
+  ): Observable<LaravelApiResponse<null>> {
+    return this.http.post<LaravelApiResponse<null>>(
+      `${this.baseUrl}/finance-tresorier/mensualites/factures/whatsapp/${factureId}`,
+      {}
     );
   }
 }
