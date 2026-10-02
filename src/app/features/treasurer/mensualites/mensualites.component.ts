@@ -20,6 +20,7 @@ import { NotificationService } from 'src/app/auth/services/Notification.service'
 import { Inscription } from 'src/app/interfaces/Inscription';
 import { Mensualite, MOIS_FR } from 'src/app/interfaces/Mensualite';
 import { PayerFactureDialogComponent } from './payer-facture-dialog/payer-facture-dialog.component';
+import { RelancesDialogComponent } from './relances-dialog/relances-dialog.component';
 import { RecusMensualitesDialogComponent } from './recus-mensualites-dialog/recus-mensualites-dialog.component';
 import { PayerMensualiteDialogComponent } from './payer-mensualite-dialog/payer-mensualite-dialog.component';
 
@@ -179,6 +180,18 @@ export class MensualitesComponent implements OnInit {
       width: '640px',
       maxHeight: '90vh',
       data: { inscription: i }
+    });
+  }
+
+  /**
+   * Relance WhatsApp des familles en retard. Ouverte à tout trésorier, même
+   * sans droit de caisse : relancer n'encaisse rien.
+   */
+  relancerImpayes(): void {
+    this.dialog.open(RelancesDialogComponent, {
+      width: '720px',
+      maxHeight: '90vh',
+      disableClose: true
     });
   }
 

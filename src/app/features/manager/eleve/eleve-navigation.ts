@@ -30,22 +30,21 @@ export const STATE_ELEVE_ID = 'eleveId';
 /**
  * Roles qui saisissent une inscription.
  *
- * L'inscription ouvre les frais et l'echeancier : c'est un acte de caisse, que
- * le tresorier pose au guichet. Le surveillant la garde, recevant lui aussi
- * les familles ; le manager, lui, ne fait plus qu'en suivre la liste. La meme
- * regle est appliquee cote serveur par StoreInscriptionRequest — ceci ne fait
- * qu'eviter d'afficher un bouton qui repartirait en 403.
+ * Le manager et le surveillant recoivent les familles et posent
+ * l'inscription ; le tresorier la valide ensuite en encaissant le premier
+ * versement. La meme regle est appliquee cote serveur par
+ * StoreInscriptionRequest — ceci ne fait qu'eviter d'afficher un bouton qui
+ * repartirait en 403.
  */
-const ROLES_SAISIE_INSCRIPTION = ['admin', 'treasurer', 'supervisor'];
+const ROLES_SAISIE_INSCRIPTION = ['admin', 'manager', 'supervisor'];
 
 /**
- * `inscriptions/add` n'existe que dans treasurer.route.ts et
- * supervisor.route.ts : manager.route.ts l'a volontairement supprimee (voir
- * son commentaire). Un admin navigue avec le meme role dans les trois
+ * `inscriptions/add` existe dans manager.route.ts et supervisor.route.ts, pas
+ * dans treasurer.route.ts. Un admin navigue avec le meme role dans les trois
  * espaces ; se fier au seul role afficherait donc le bouton dans l'espace
- * manager et ferait echouer la navigation avec NG04002 (route introuvable).
+ * tresorier et ferait echouer la navigation avec NG04002 (route introuvable).
  */
-const AIRES_SAISIE_INSCRIPTION = ['treasurer', 'supervisor'];
+const AIRES_SAISIE_INSCRIPTION = ['manager', 'supervisor'];
 
 export function peutSaisirInscription(role: string, router?: Router): boolean {
   if (!ROLES_SAISIE_INSCRIPTION.includes(role)) {
@@ -53,6 +52,22 @@ export function peutSaisirInscription(role: string, router?: Router): boolean {
   }
 
   return router ? AIRES_SAISIE_INSCRIPTION.includes(aireCourante(router)) : true;
+}
+
+/**
+ * Roles qui creent et modifient une fiche eleve. Le tresorier la consulte
+ * seulement : meme regle que StoreEleveRequest / UpdateEleveRequest.
+ */
+const ROLES_SAISIE_ELEVE = ['admin', 'manager', 'supervisor'];
+
+/**
+ * L'espace tresorier n'a pas de route de saisie (students/add, students/edit) :
+ * meme un admin qui y navigue ne doit pas voir les boutons correspondants.
+ */
+export function peutModifierEleve(role: string, router: Router): boolean {
+  return (
+    ROLES_SAISIE_ELEVE.includes(role) && aireCourante(router) !== 'treasurer'
+  );
 }
 
 interface EleveState {

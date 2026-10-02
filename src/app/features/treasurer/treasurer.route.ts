@@ -1,7 +1,7 @@
 import { VexRoutes } from '@vex/interfaces/vex-route.interface';
 
 /**
- * Espace tresorier. Deux blocs : la saisie (eleves, inscriptions) puis
+ * Espace tresorier. Deux blocs : la consultation (eleves, inscriptions) puis
  * l'encaissement, qui s'appuie sur les endpoints finance-tresorier.
  *
  * Les ecrans eleves/inscriptions sont mutualises avec l'espace manager : on
@@ -18,9 +18,11 @@ export const treasurerRoute: VexRoutes = [
       )
   },
 
-  // ─── Eleves : consultation, creation, modification ─────────────────────────
-  // La creation enchaine sur l'inscription : c'est ce qui evite qu'un eleve
-  // soit saisi puis oublie sans inscription (voir EleveAddUpdateComponent).
+  // ─── Eleves et inscriptions : consultation seule ───────────────────────────
+  // Le tresorier ne cree ni ne modifie une fiche, et n'inscrit pas (il valide
+  // l'inscription en l'encaissant, voir `encaissements`) : les
+  // routes de saisie (students/add, students/edit, inscriptions/add)
+  // n'existent pas dans son espace. Le serveur applique la meme regle.
   {
     path: 'students',
     loadComponent: () =>
@@ -29,43 +31,18 @@ export const treasurerRoute: VexRoutes = [
       )
   },
   {
-    path: 'students/add',
-    loadComponent: () =>
-      import(
-        '../manager/eleve/eleve-add-update/eleve-add-update.component'
-      ).then((c) => c.EleveAddUpdateComponent)
-  },
-  {
-    path: 'students/edit',
-    loadComponent: () =>
-      import(
-        '../manager/eleve/eleve-add-update/eleve-add-update.component'
-      ).then((c) => c.EleveAddUpdateComponent)
-  },
-  {
     path: 'students/detail',
     loadComponent: () =>
       import('../manager/eleve/eleve-detail/eleve-detail.component').then(
         (c) => c.EleveDetailComponent
       )
   },
-
-  // ─── Inscriptions : saisie et liste ────────────────────────────────────────
-  // L'inscription ouvre les frais et l'echeancier : c'est un acte de caisse,
-  // le tresorier la saisit donc lui-meme, au guichet.
   {
     path: 'inscriptions',
     loadComponent: () =>
       import(
         '../manager/inscription/inscription-list/inscription-list.component'
       ).then((c) => c.InscriptionListComponent)
-  },
-  {
-    path: 'inscriptions/add',
-    loadComponent: () =>
-      import(
-        '../manager/inscription/inscription-add/inscription-add.component'
-      ).then((c) => c.InscriptionAddComponent)
   },
 
   {

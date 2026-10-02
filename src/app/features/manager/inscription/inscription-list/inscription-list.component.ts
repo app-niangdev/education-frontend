@@ -72,9 +72,9 @@ export class InscriptionListComponent implements OnInit {
   private readonly authService = inject(AuthService);
 
   /**
-   * Ecran mutualise. La saisie appartient au tresorier (et au surveillant) :
-   * pour le manager, cette liste est un ecran de suivi — il annule, supprime
-   * et imprime, mais n'inscrit plus. Le bouton de creation est donc masque.
+   * Ecran mutualise. La saisie appartient au manager et au surveillant. Le
+   * tresorier, lui, consulte la liste avant d'encaisser : le bouton de
+   * creation lui est masque.
    */
   readonly peutInscrire = peutSaisirInscription(this.authService.getRole(), this.router);
 

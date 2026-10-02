@@ -16,7 +16,7 @@
     <mat-icon svgIcon="mat:archive" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
     Importer
   </button>
-  <button entete color="primary" mat-raised-button type="button" (click)="nouvelEleve()"
+  <button entete *ngIf="peutModifier" color="primary" mat-raised-button type="button" (click)="nouvelEleve()"
     class="hidden sm:inline-flex">
     <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 ltr:-ml-1 rtl:-mr-1 icon-sm"></mat-icon>
     Nouvel élève
@@ -122,10 +122,10 @@
 
     <ng-template #aucunEleve>
       <h3 class="title m-0">Aucun élève</h3>
-      <p class="m-0 caption text-hint text-center">
+      <p *ngIf="peutModifier" class="m-0 caption text-hint text-center">
         Commencez par créer le premier élève de l'établissement.
       </p>
-      <button color="primary" mat-raised-button type="button" (click)="nouvelEleve()">
+      <button *ngIf="peutModifier" color="primary" mat-raised-button type="button" (click)="nouvelEleve()">
         <mat-icon svgIcon="mat:add" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
         Créer un élève
       </button>
@@ -140,7 +140,7 @@
       <mat-icon svgIcon="mat:visibility" class="mr-2"></mat-icon>
       <span>Voir la fiche</span>
     </button>
-    <button mat-menu-item (click)="editerEleve(eleve)">
+    <button *ngIf="peutModifier" mat-menu-item (click)="editerEleve(eleve)">
       <mat-icon svgIcon="mat:edit" class="mr-2"></mat-icon>
       <span>Modifier</span>
     </button>
@@ -148,7 +148,7 @@
       <mat-icon svgIcon="mat:assignment" class="mr-2"></mat-icon>
       <span>Inscrire / Réinscrire</span>
     </button>
-    <button *ngIf="!isSupervisor" mat-menu-item (click)="supprimerEleve(eleve)" class="text-red-600">
+    <button *ngIf="peutModifier && !isSupervisor" mat-menu-item (click)="supprimerEleve(eleve)" class="text-red-600">
       <mat-icon svgIcon="mat:delete" class="mr-2"></mat-icon>
       <span>Supprimer</span>
     </button>

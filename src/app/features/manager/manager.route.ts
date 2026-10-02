@@ -123,14 +123,19 @@ export const managerRoute: VexRoutes = [
       )
   },
   {
-    // Consultation seule : la saisie d'une inscription est passee au tresorier
-    // (acte de caisse, voir treasurer.route). Le manager suit la liste, annule
-    // et supprime, mais ne cree plus — l'ancienne route `inscriptions/add` est
-    // supprimee, le bouton correspondant masque cote template.
+    // Le manager inscrit, comme le surveillant ; le tresorier valide ensuite
+    // l'inscription en encaissant le premier versement.
     path: 'inscriptions',
     loadComponent: () =>
       import('./inscription/inscription-list/inscription-list.component').then(
         (c) => c.InscriptionListComponent
+      )
+  },
+  {
+    path: 'inscriptions/add',
+    loadComponent: () =>
+      import('./inscription/inscription-add/inscription-add.component').then(
+        (c) => c.InscriptionAddComponent
       )
   },
   {
@@ -199,9 +204,8 @@ export const managerRoute: VexRoutes = [
       import('../shared/bilan/bilan.component').then((c) => c.BilanComponent)
   },
   // Filet de sécurité : toute URL de cet espace qui ne correspond à aucune
-  // route ci-dessus (ex. un lien vers l'ancienne route `inscriptions/add`,
-  // supprimée côté manager) redirige vers l'accueil au lieu de planter avec
-  // NG04002 (Cannot match any routes).
+  // route ci-dessus redirige vers l'accueil au lieu de planter avec NG04002
+  // (Cannot match any routes).
   {
     path: '**',
     redirectTo: 'home'

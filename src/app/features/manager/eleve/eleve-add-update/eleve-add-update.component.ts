@@ -245,32 +245,6 @@ export class EleveAddUpdateComponent implements OnInit {
         }
       });
 
-    // L'annuaire des tuteurs. Le debounce evite un appel par touche frappee ;
-    // switchMap abandonne la reponse d'une recherche devenue obsolete, sans
-    // quoi une requete lente pourrait ecraser le resultat d'une plus recente.
-    this.rechercheTuteur.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        switchMap((terme) => {
-          this.rechercheEnCours = true;
-
-          return this.annuaireTuteur.rechercher(terme ?? '');
-        })
-      )
-      .subscribe({
-        next: (tuteurs) => {
-          this.rechercheEnCours = false;
-          this.tuteursTrouves = tuteurs;
-        },
-        // Un annuaire indisponible ne doit pas bloquer la saisie : on retombe
-        // sur le formulaire manuel, qui reste parfaitement valable.
-        error: () => {
-          this.rechercheEnCours = false;
-          this.tuteursTrouves = [];
-        }
-      });
-
     if (!this.modeEdition) return;
 
     // Route d'edition sans state (URL saisie directement) : l'eleve est

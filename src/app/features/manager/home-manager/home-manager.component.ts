@@ -7,6 +7,7 @@ import { fadeInRight400ms } from '@vex/animations/fade-in-right.animation';
 import { scaleIn400ms } from '@vex/animations/scale-in.animation';
 import { stagger40ms } from '@vex/animations/stagger.animation';
 import { StatistiqueService } from 'src/app/auth/services/statistique.service';
+import { StatutWhatsappComponent } from 'src/app/features/shared/statut-whatsapp/statut-whatsapp.component';
 import { DashboardStats } from 'src/app/interfaces/Statistique';
 
 interface StatTile {
@@ -29,6 +30,7 @@ interface NiveauBar {
   animations: [stagger40ms, scaleIn400ms, fadeInRight400ms],
   standalone: true,
   imports: [
+    StatutWhatsappComponent,
     CommonModule,
     MatIconModule,
     MatTooltipModule,

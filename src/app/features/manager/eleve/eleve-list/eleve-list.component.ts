@@ -29,6 +29,7 @@ import { ListeLigneComponent } from 'src/app/shared/liste/liste-ligne.component'
 import { ListePageComponent } from 'src/app/shared/liste/liste-page.component';
 import { EleveImportDialogComponent } from '../eleve-import/eleve-import-dialog.component';
 import {
+  peutModifierEleve,
   peutSaisirInscription,
   ROUTE_ELEVE_AJOUT,
   ROUTE_ELEVE_DETAIL,
@@ -75,9 +76,12 @@ export class EleveListComponent implements OnInit {
    */
   readonly isSupervisor = this.authService.isSupervisor();
 
+  /** Le tresorier consulte les fiches sans les creer ni les modifier. */
+  readonly peutModifier = peutModifierEleve(this.authService.getRole(), this.router);
+
   /**
-   * L'inscription appartient au tresorier et au surveillant. Le manager tient
-   * la fiche eleve mais n'inscrit plus : le bouton lui est masque.
+   * L'inscription appartient au manager et au surveillant. Le tresorier la
+   * valide en encaissant, mais n'inscrit pas : le bouton lui est masque.
    */
   readonly peutInscrire = peutSaisirInscription(this.authService.getRole(), this.router);
 

@@ -39,11 +39,20 @@
             </p>
           </div>
 
-          <mat-form-field appearance="outline" class="w-full sm:w-80" subscriptSizing="dynamic">
-            <mat-label>Rechercher</mat-label>
-            <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
-            <input matInput [formControl]="searchCtrl" placeholder="Élève, matricule, N° inscription, classe" />
-          </mat-form-field>
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <mat-form-field appearance="outline" class="w-full sm:w-80" subscriptSizing="dynamic">
+              <mat-label>Rechercher</mat-label>
+              <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+              <input matInput [formControl]="searchCtrl" placeholder="Élève, matricule, N° inscription, classe" />
+            </mat-form-field>
+
+            <button mat-stroked-button color="primary" type="button" class="flex-none"
+              matTooltip="Rappeler leurs arriérés aux tuteurs, sur WhatsApp"
+              (click)="relancerImpayes()">
+              <mat-icon svgIcon="mat:notifications_active" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+              Relancer les impayés
+            </button>
+          </div>
         </div>
 
         <!-- Loading -->

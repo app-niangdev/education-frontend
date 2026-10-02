@@ -25,6 +25,7 @@ import {
 import { LIENS_PARENTE } from 'src/app/interfaces/Tuteur';
 import {
   lireEleveIdDepuisState,
+  peutModifierEleve,
   peutSaisirInscription,
   ROUTE_ELEVE_EDITION,
   ROUTE_ELEVES,
@@ -134,9 +135,17 @@ export class EleveDetailComponent implements OnInit {
   }
 
   /**
-   * L'inscription appartient au tresorier et au surveillant : c'est un acte de
-   * caisse. Le manager tient la fiche mais n'inscrit plus — le bouton lui est
-   * masque, le serveur appliquant de toute facon la meme regle.
+   * Le tresorier consulte la fiche sans la modifier : les boutons d'edition
+   * lui sont masques, le serveur appliquant de toute facon la meme regle.
+   */
+  get peutModifier(): boolean {
+    return peutModifierEleve(this.authService.getRole(), this.router);
+  }
+
+  /**
+   * L'inscription appartient au manager et au surveillant. Le tresorier la
+   * valide en encaissant, mais n'inscrit pas — le bouton lui est masque, le
+   * serveur appliquant de toute facon la meme regle.
    */
   get peutInscrire(): boolean {
     return peutSaisirInscription(this.authService.getRole(), this.router);

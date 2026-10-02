@@ -1,0 +1,209 @@
+<h2 class="flex items-center gap-2" mat-dialog-title>
+  <mat-icon svgIcon="mat:notifications_active"></mat-icon>
+  <span>Relancer les impayés</span>
+</h2>
+
+<mat-dialog-content class="!max-h-[70vh]">
+
+  <div class="border-b flex items-center gap-1 mb-4">
+    <button type="button" (click)="changerOnglet('relancer')"
+      class="px-4 py-3 border-b-2 transition-colors duration-150 body-2"
+      [ngClass]="onglet() === 'relancer'
+        ? 'border-primary-600 text-primary-600 font-medium'
+        : 'border-transparent text-hint hover:text-primary-600'">
+      À relancer
+    </button>
+    <button type="button" (click)="changerOnglet('historique')"
+      class="px-4 py-3 border-b-2 transition-colors duration-150 body-2"
+      [ngClass]="onglet() === 'historique'
+        ? 'border-primary-600 text-primary-600 font-medium'
+        : 'border-transparent text-hint hover:text-primary-600'">
+      Historique
+    </button>
+  </div>
+
+  <ng-container *ngIf="onglet() === 'relancer'">
+
+  <!-- Chargement -->
+  <div *ngIf="chargement()" class="flex flex-col items-center justify-center gap-3 py-10">
+    <mat-spinner diameter="32"></mat-spinner>
+    <p class="m-0 caption text-hint">Calcul des arriérés…</p>
+  </div>
+
+  <ng-container *ngIf="!chargement()">
+
+    <!-- WhatsApp non configuré : la liste reste consultable. -->
+    <div *ngIf="!active()"
+      class="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3 mb-4">
+      <mat-icon svgIcon="mat:warning" class="text-amber-700 icon-sm flex-none mt-0.5"></mat-icon>
+      <p class="m-0 caption text-amber-800">
+        L'envoi WhatsApp n'est pas configuré pour cet établissement : les familles
+        en retard sont listées, mais aucune relance ne peut partir.
+      </p>
+    </div>
+
+    <ng-container *ngIf="debiteurs().length > 0">
+
+      <p class="m-0 body-2 mb-4">
+        <strong>{{ debiteurs().length }}</strong>
+        famille{{ debiteurs().length > 1 ? 's' : '' }} en retard —
+        <strong class="text-red-700">{{ totalDu() | number }} FCFA</strong> à recouvrer.
+        <span class="caption text-hint block">
+          Sont comptés le reste des frais d'inscription et les mensualités dont
+          l'échéance est passée. Une famille n'est relancée qu'une fois toutes
+          les {{ delaiHeures() }} h.
+        </span>
+      </p>
+
+      <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+        <mat-label>Rechercher</mat-label>
+        <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+        <input matInput [ngModel]="recherche()" (ngModelChange)="recherche.set($event)"
+          placeholder="Tuteur, téléphone, élève, matricule" />
+      </mat-form-field>
+
+      <div class="rounded border divide-y mt-4">
+        <div *ngFor="let d of filtres()" class="px-4 py-3 flex items-start justify-between gap-4">
+
+          <div class="min-w-0">
+            <p class="m-0 body-2 font-medium">
+              {{ d.tuteur.nom_complet }}
+              <span class="caption text-hint font-normal">— {{ d.tuteur.telephone }}</span>
+            </p>
+
+            <p *ngFor="let e of d.eleves" class="m-0 caption text-hint">
+              <span class="text-default">{{ e.nom_complet }}</span>
+              <ng-container *ngIf="e.classe"> ({{ e.classe }})</ng-container>
+              : {{ detail(e) }}
+            </p>
+
+            <p *ngIf="d.blocage_message" class="m-0 caption text-amber-700">
+              {{ d.blocage_message }}
+            </p>
+            <p *ngIf="d.derniere_relance_at" class="m-0 caption text-hint">
+              Dernière relance : {{ d.derniere_relance_at | date : 'dd/MM/yyyy HH:mm' }}
+            </p>
+          </div>
+
+          <div class="flex items-center gap-3 flex-none">
+            <span class="body-2 font-semibold text-red-700 whitespace-nowrap">
+              {{ d.total | number }} FCFA
+            </span>
+
+            <button mat-icon-button type="button"
+              [disabled]="occupe || d.blocage !== null"
+              [matTooltip]="d.blocage_message ?? 'Relancer sur WhatsApp'"
+              (click)="relancer(d)">
+              <mat-spinner *ngIf="envoiId() === d.tuteur.id; else iconeEnvoi" diameter="20"></mat-spinner>
+              <ng-template #iconeEnvoi>
+                <mat-icon svgIcon="mat:send"
+                  [ngClass]="d.blocage === null ? 'text-primary-600' : 'text-hint'"></mat-icon>
+              </ng-template>
+            </button>
+          </div>
+
+        </div>
+
+        <p *ngIf="filtres().length === 0" class="m-0 px-4 py-6 caption text-hint text-center">
+          Aucune famille ne correspond à « {{ recherche() }} ».
+        </p>
+      </div>
+
+    </ng-container>
+
+    <!-- Aucun arriéré -->
+    <div *ngIf="debiteurs().length === 0"
+      class="flex flex-col items-center justify-center gap-3 py-10">
+      <div class="w-14 h-14 rounded-full bg-green-100 text-green-700 flex items-center justify-center">
+        <mat-icon svgIcon="mat:check_circle" class="icon-lg"></mat-icon>
+      </div>
+      <h3 class="title m-0">Aucun arriéré</h3>
+      <p class="m-0 caption text-hint text-center">
+        Toutes les familles sont à jour de leurs échéances passées.
+      </p>
+    </div>
+
+  </ng-container>
+
+  </ng-container>
+
+  <!-- Historique : ce qui est parti, relances et rappels automatiques -->
+  <ng-container *ngIf="onglet() === 'historique'">
+
+    <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+      <mat-label>Rechercher</mat-label>
+      <mat-icon matPrefix svgIcon="mat:search" class="mr-2 text-hint icon-sm"></mat-icon>
+      <input matInput [ngModel]="rechercheHistorique()" (ngModelChange)="rechercherHistorique($event)"
+        placeholder="Tuteur ou téléphone" />
+    </mat-form-field>
+
+    <div *ngIf="chargementHistorique()" class="flex flex-col items-center justify-center gap-3 py-10">
+      <mat-spinner diameter="32"></mat-spinner>
+      <p class="m-0 caption text-hint">Chargement de l'historique…</p>
+    </div>
+
+    <ng-container *ngIf="!chargementHistorique()">
+
+      <div *ngIf="historique().length > 0" class="rounded border divide-y mt-4">
+        <div *ngFor="let r of historique()" class="px-4 py-3 flex items-start justify-between gap-4">
+
+          <div class="min-w-0">
+            <p class="m-0 body-2 font-medium">
+              {{ r.tuteur?.nom_complet ?? 'Tuteur supprimé' }}
+              <span class="caption text-hint font-normal">— {{ r.telephone }}</span>
+            </p>
+            <p class="m-0 caption text-hint">
+              {{ r.created_at | date : 'dd/MM/yyyy HH:mm' }}
+              &bull; {{ r.type === 'RAPPEL' ? "Rappel d'échéance" : "Relance d'arriéré" }}
+              &bull; {{ r.utilisateur ? 'par ' + r.utilisateur.full_name : 'envoi automatique' }}
+            </p>
+            <p *ngIf="r.erreur" class="m-0 caption text-red-700 truncate" [matTooltip]="r.erreur">
+              {{ r.erreur }}
+            </p>
+          </div>
+
+          <div class="flex items-center gap-3 flex-none">
+            <span class="body-2 font-semibold whitespace-nowrap">{{ r.montant | number }} FCFA</span>
+            <span class="px-2 py-1 rounded-full text-xs font-medium"
+              [ngClass]="r.statut === 'ENVOYEE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+              {{ r.statut === 'ENVOYEE' ? 'Envoyée' : 'Échec' }}
+            </span>
+          </div>
+
+        </div>
+      </div>
+
+      <p *ngIf="historique().length === 0" class="m-0 py-10 caption text-hint text-center">
+        <ng-container *ngIf="rechercheHistorique(); else aucunEnvoi">
+          Aucun envoi ne correspond à « {{ rechercheHistorique() }} ».
+        </ng-container>
+        <ng-template #aucunEnvoi>Aucune relance n'a encore été envoyée.</ng-template>
+      </p>
+
+    </ng-container>
+
+    <mat-paginator *ngIf="historiqueMeta().total > 0"
+      [length]="historiqueMeta().total"
+      [pageIndex]="historiqueMeta().current_page - 1"
+      [pageSize]="historiqueMeta().per_page"
+      [pageSizeOptions]="[10, 25, 50]"
+      (page)="onPageHistorique($event)">
+    </mat-paginator>
+
+  </ng-container>
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <span *ngIf="lot() as avancement" class="caption text-hint ltr:mr-auto rtl:ml-auto">
+    Envoi {{ avancement.fait }} / {{ avancement.total }}…
+  </span>
+
+  <button (click)="fermer()" mat-button type="button" [disabled]="lot() !== null">Fermer</button>
+
+  <button *ngIf="onglet() === 'relancer' && relancables().length > 0" mat-raised-button color="primary" type="button"
+    [disabled]="occupe" (click)="relancerTout()">
+    <mat-icon svgIcon="mat:send" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
+    Relancer tout ({{ relancables().length }})
+  </button>
+</mat-dialog-actions>

@@ -22,7 +22,7 @@
           Inscrire
         </button>
 
-        <button mat-stroked-button type="button" (click)="modifierFiche()" class="hidden sm:inline-flex">
+        <button *ngIf="peutModifier" mat-stroked-button type="button" (click)="modifierFiche()" class="hidden sm:inline-flex">
           <mat-icon svgIcon="mat:edit" class="ltr:mr-2 rtl:ml-2 icon-sm"></mat-icon>
           Modifier
         </button>
@@ -55,7 +55,7 @@
           <div class="flex items-center gap-2 mb-4">
             <mat-icon svgIcon="mat:person" class="icon-sm text-primary-600"></mat-icon>
             <h3 class="body-1 font-semibold m-0 flex-auto">Identité</h3>
-            <button mat-icon-button type="button" (click)="editer('identite')" matTooltip="Modifier l'identité">
+            <button *ngIf="peutModifier" mat-icon-button type="button" (click)="editer('identite')" matTooltip="Modifier l'identité">
               <mat-icon svgIcon="mat:edit" class="icon-sm"></mat-icon>
             </button>
           </div>
@@ -90,7 +90,7 @@
             <mat-icon [svgIcon]="alerteMedicale ? 'mat:warning' : 'mat:assignment'" class="icon-sm"
               [ngClass]="alerteMedicale ? 'text-red-600' : 'text-primary-600'"></mat-icon>
             <h3 class="body-1 font-semibold m-0 flex-auto">Antécédents médicaux</h3>
-            <button mat-icon-button type="button" (click)="editer('medical')" matTooltip="Modifier le dossier médical">
+            <button *ngIf="peutModifier" mat-icon-button type="button" (click)="editer('medical')" matTooltip="Modifier le dossier médical">
               <mat-icon svgIcon="mat:edit" class="icon-sm"></mat-icon>
             </button>
           </div>
@@ -128,7 +128,7 @@
           <div class="flex items-center gap-2 mb-4">
             <mat-icon svgIcon="mat:school" class="icon-sm text-primary-600"></mat-icon>
             <h3 class="body-1 font-semibold m-0 flex-auto">Scolarité</h3>
-            <button mat-icon-button type="button" (click)="editer('scolarite')" matTooltip="Modifier la scolarité">
+            <button *ngIf="peutModifier" mat-icon-button type="button" (click)="editer('scolarite')" matTooltip="Modifier la scolarité">
               <mat-icon svgIcon="mat:edit" class="icon-sm"></mat-icon>
             </button>
           </div>
@@ -158,7 +158,7 @@
           <div class="flex items-center gap-2 mb-4">
             <mat-icon svgIcon="mat:contacts" class="icon-sm text-primary-600"></mat-icon>
             <h3 class="body-1 font-semibold m-0 flex-auto">Parents</h3>
-            <button mat-icon-button type="button" (click)="editer('parents')" matTooltip="Modifier les parents">
+            <button *ngIf="peutModifier" mat-icon-button type="button" (click)="editer('parents')" matTooltip="Modifier les parents">
               <mat-icon svgIcon="mat:edit" class="icon-sm"></mat-icon>
             </button>
           </div>
@@ -242,7 +242,7 @@
               {{ eleve.tuteur.user_id ? 'Réinitialiser l\'accès' : 'Ouvrir un accès' }}
             </button>
 
-            <button mat-icon-button type="button" (click)="editer('tuteur')" matTooltip="Modifier le tuteur">
+            <button *ngIf="peutModifier" mat-icon-button type="button" (click)="editer('tuteur')" matTooltip="Modifier le tuteur">
               <mat-icon svgIcon="mat:edit" class="icon-sm"></mat-icon>
             </button>
           </div>

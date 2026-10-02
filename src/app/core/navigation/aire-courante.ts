@@ -4,9 +4,9 @@ import { Router } from '@angular/router';
  * Espaces applicatifs qui partagent les memes ecrans (classes, eleves,
  * inscriptions, emploi du temps...). L'URL a la forme /index/<aire>/...
  *
- * Le tresorier en fait partie depuis qu'il saisit les inscriptions : il
- * reutilise les ecrans eleves et inscriptions du manager, et sa navigation
- * doit rester dans /index/treasurer/...
+ * Le tresorier en fait partie : il consulte les ecrans eleves et
+ * inscriptions du manager, et sa navigation doit rester dans
+ * /index/treasurer/...
  */
 export type Aire = 'manager' | 'supervisor' | 'treasurer';
 

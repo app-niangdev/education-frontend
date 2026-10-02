@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  // apiUrl: 'http://localhost:8000/api',
+  apiUrl: 'http://localhost:8000/api',
   current_page: 1,
   per_page: 10,
   total: 10,

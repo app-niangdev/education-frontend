@@ -14,6 +14,11 @@ import {
   ValiderInscriptionPayload
 } from 'src/app/interfaces/Paiement';
 import {
+  DebiteursPayload,
+  RelanceHistorique,
+  RelanceResultat
+} from 'src/app/interfaces/Relance';
+import {
   LaravelApiResponse,
   PaginationMeta,
   initialPaginationMeta
@@ -332,5 +337,51 @@ export class FinanceTresorierService {
       `${this.baseUrl}/finance-tresorier/mensualites/factures/whatsapp/${factureId}`,
       {}
     );
+  }
+
+  // ─── Relances des impayés ───────────────────────────────────────────────────
+
+  /**
+   * Familles en retard de paiement sur l'année en cours : reste des frais
+   * d'inscription et mensualités échues non soldées, regroupés par tuteur.
+   */
+  getDebiteurs(): Observable<DebiteursPayload> {
+    return this.http
+      .get<LaravelApiResponse<DebiteursPayload>>(
+        `${this.baseUrl}/finance-tresorier/relances/debiteurs`
+      )
+      .pipe(map((response) => response.payload));
+  }
+
+  /**
+   * Relance une famille sur WhatsApp. Le serveur recalcule les arriérés et
+   * refuse (422) une relance sans objet ; 503 signale un service en panne.
+   */
+  relancerTuteur(
+    tuteurId: number
+  ): Observable<LaravelApiResponse<RelanceResultat>> {
+    return this.http.post<LaravelApiResponse<RelanceResultat>>(
+      `${this.baseUrl}/finance-tresorier/relances/envoyer/${tuteurId}`,
+      {}
+    );
+  }
+
+  /** Relances et rappels déjà envoyés, du plus récent au plus ancien. */
+  getHistoriqueRelances(
+    page = 1,
+    perPage = 10,
+    search = ''
+  ): Observable<{ relances: RelanceHistorique[]; meta: PaginationMeta }> {
+    return this.http
+      .get<LaravelApiResponse<RelanceHistorique[]>>(
+        `${this.baseUrl}/finance-tresorier/relances/historique`,
+        { params: { page, per_page: perPage, search } }
+      )
+      .pipe(
+        map((response) => ({
+          relances: response.payload ?? [],
+          meta: response.meta ?? initialPaginationMeta
+        }))
+      );
   }
 }
